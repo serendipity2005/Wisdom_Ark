@@ -35,6 +35,18 @@
 
 ## 项目开发规范
 
+### 命名规范
+
+- prop 命名使用 `kebab-case` 形式，如 `user-name`。
+- 组件 命名使用 `PascalCase` 形式，如 `UserProfile`。
+- 文件夹名称 采用 `kebab-case` 形式，如 `user-profile`。
+- 变量命名 使用 `camelCase` 形式，如 `userName`。
+- 常量命名 使用全大写和下划线连接，如 `API_BASE_URL`。
+- 函数命名 使用 `camelCase` 形式，如 `fetchUserData()`。
+- 类名命名 使用 `PascalCase`，如 `UserCard`。
+- 接口命名 使用 `I` 前缀 + `PascalCase`，如 `IUser`。
+- CSS 类名命名 遵循 BEM (Block Element Modifier) 方法论：如 `.user-card`
+
 ### 📏 开发规范
 
 为了确保代码质量和团队协作效率，本项目制定了以下开发规范，请所有开发者严格遵守。
@@ -190,15 +202,3 @@ wip
 #    Capitalize the subject line
 #    Use
 ```
-
-### 命名规范
-
-- prop 命名使用 `kebab-case` 形式，如 `user-name`。
-- 组件 命名使用 `PascalCase` 形式，如 `UserProfile`。
-- 文件夹名称 采用 `kebab-case` 形式，如 `user-profile`。
-- 变量命名 使用 `camelCase` 形式，如 `userName`。
-- 常量命名 使用全大写和下划线连接，如 `API_BASE_URL`。
-- 函数命名 使用 `camelCase` 形式，如 `fetchUserData()`。
-- 类名命名 使用 `PascalCase`，如 `UserCard`。
-- 接口命名 使用 `I` 前缀 + `PascalCase`，如 `IUser`。
-- CSS 类名命名 遵循 BEM (Block Element Modifier) 方法论：如 `.user-card`

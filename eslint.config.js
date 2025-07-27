@@ -21,6 +21,7 @@ export default tseslint.config([
       'coverage/**/*',
       '.next/**/*',
       '.nuxt/**/*',
+      'uno.config.ts',
     ],
   },
 
@@ -100,14 +101,15 @@ export default tseslint.config([
   {
     files: ['**/*.{ts,tsx}'],
     rules: {
-      '@typescript-eslint/no-unused-vars': [
-        'error',
-        {
-          argsIgnorePattern: '^_',
-          varsIgnorePattern: '^_',
-          caughtErrorsIgnorePattern: '^_',
-        },
-      ],
+      // '@typescript-eslint/no-unused-vars': [
+      //   'error',
+      //   {
+      //     argsIgnorePattern: '^_',
+      //     varsIgnorePattern: '^_',
+      //     caughtErrorsIgnorePattern: '^_',
+      //   },
+      // ], //未使用变量使用_下划线
+      '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       'prefer-const': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',

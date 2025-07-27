@@ -1,0 +1,353 @@
+// 颜色变量 - 仿掘金配色方案
+// 主色调
+$primary-color: #1e80ff;
+$primary-light: #bae0ff;
+$primary-dark: #0066cc;
+$primary-gradient: linear-gradient(135deg, #1e80ff 0%, #00d4aa 100%);
+
+// 辅助色
+$secondary-color: #8c8c8c;
+$secondary-light: #d9d9d9;
+$secondary-dark: #595959;
+
+// 成功色
+$success-color: #52c41a;
+$success-light: #b7eb8f;
+$success-dark: #389e0d;
+
+// 警告色
+$warning-color: #faad14;
+$warning-light: #ffe58f;
+$warning-dark: #d48806;
+
+// 错误色
+$error-color: #ff4d4f;
+$error-light: #ffa39e;
+$error-dark: #cf1322;
+
+// 信息色
+$info-color: #1890ff;
+$info-light: #91d5ff;
+$info-dark: #096dd9;
+
+// 掘金特色色彩
+$juejin-blue: #1e80ff;
+$juejin-orange: #ff6b35;
+$juejin-green: #00d4aa;
+$juejin-purple: #8b5cf6;
+$juejin-pink: #ec4899;
+$juejin-yellow: #f59e0b;
+
+// 灰色系
+$gray-50: #fafafa;
+$gray-100: #f5f5f5;
+$gray-200: #f0f0f0;
+$gray-300: #d9d9d9;
+$gray-400: #bfbfbf;
+$gray-500: #8c8c8c;
+$gray-600: #595959;
+$gray-700: #434343;
+$gray-800: #262626;
+$gray-900: #1f1f1f;
+$gray-950: #141414;
+
+// 背景色
+$bg-primary: #ffffff;
+$bg-secondary: #fafafa;
+$bg-tertiary: #f5f5f5;
+$bg-dark: #1f1f1f;
+$bg-overlay: rgba(0, 0, 0, 0.45);
+
+// 文字颜色
+$text-primary: #262626;
+$text-secondary: #595959;
+$text-tertiary: #8c8c8c;
+$text-placeholder: #bfbfbf;
+$text-inverse: #ffffff;
+$text-link: #1e80ff;
+$text-link-hover: #0066cc;
+
+// 边框颜色
+$border-color: #d9d9d9;
+$border-color-light: #f0f0f0;
+$border-color-dark: #434343;
+$border-color-focus: #1e80ff;
+
+// =============================================
+// 字体变量
+// =============================================
+
+// 字体族
+$font-family-sans:
+  -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+  'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial,
+  sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+$font-family-mono:
+  'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier, monospace;
+$font-family-title:
+  'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+
+// 字体大小
+$font-size-xs: 12px;
+$font-size-sm: 14px;
+$font-size-base: 16px;
+$font-size-lg: 18px;
+$font-size-xl: 20px;
+$font-size-2xl: 24px;
+$font-size-3xl: 30px;
+$font-size-4xl: 36px;
+$font-size-5xl: 48px;
+$font-size-6xl: 60px;
+
+// 行高
+$line-height-tight: 1.25;
+$line-height-normal: 1.5;
+$line-height-relaxed: 1.75;
+$line-height-loose: 2;
+
+// 字重
+$font-weight-light: 300;
+$font-weight-normal: 400;
+$font-weight-medium: 500;
+$font-weight-semibold: 600;
+$font-weight-bold: 700;
+$font-weight-extrabold: 800;
+$font-weight-black: 900;
+
+// =============================================
+// 间距变量
+// =============================================
+
+// 基础间距单位
+$spacing-unit: 4px;
+
+// 间距系列
+$spacing-0: 0;
+$spacing-1: #{$spacing-unit * 1}; // 4px
+$spacing-2: #{$spacing-unit * 2}; // 8px
+$spacing-3: #{$spacing-unit * 3}; // 12px
+$spacing-4: #{$spacing-unit * 4}; // 16px
+$spacing-5: #{$spacing-unit * 5}; // 20px
+$spacing-6: #{$spacing-unit * 6}; // 24px
+$spacing-8: #{$spacing-unit * 8}; // 32px
+$spacing-10: #{$spacing-unit * 10}; // 40px
+$spacing-12: #{$spacing-unit * 12}; // 48px
+$spacing-16: #{$spacing-unit * 16}; // 64px
+$spacing-20: #{$spacing-unit * 20}; // 80px
+$spacing-24: #{$spacing-unit * 24}; // 96px
+$spacing-32: #{$spacing-unit * 32}; // 128px
+
+// 页面布局间距
+$container-padding: 20px;
+$section-padding-y: 60px;
+$section-padding-x: 20px;
+
+// =============================================
+// 圆角变量
+// =============================================
+
+$border-radius-none: 0;
+$border-radius-sm: 4px;
+$border-radius-base: 6px;
+$border-radius-md: 8px;
+$border-radius-lg: 12px;
+$border-radius-xl: 16px;
+$border-radius-2xl: 20px;
+$border-radius-3xl: 24px;
+$border-radius-full: 9999px;
+
+// =============================================
+// 阴影变量
+// =============================================
+
+$box-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+$box-shadow-base:
+  0 1px 3px 0 rgba(0, 0, 0, 0.1),
+  0 1px 2px 0 rgba(0, 0, 0, 0.06);
+$box-shadow-md:
+  0 4px 6px -1px rgba(0, 0, 0, 0.1),
+  0 2px 4px -1px rgba(0, 0, 0, 0.06);
+$box-shadow-lg:
+  0 10px 15px -3px rgba(0, 0, 0, 0.1),
+  0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$box-shadow-xl:
+  0 20px 25px -5px rgba(0, 0, 0, 0.1),
+  0 10px 10px -5px rgba(0, 0, 0, 0.04);
+$box-shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+$box-shadow-inner: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);
+
+// 掘金特色阴影
+$box-shadow-juejin: 0 2px 12px 0 rgba(30, 128, 255, 0.15);
+$box-shadow-juejin-hover: 0 4px 20px 0 rgba(30, 128, 255, 0.25);
+$box-shadow-card: 0 2px 8px 0 rgba(0, 0, 0, 0.08);
+$box-shadow-card-hover: 0 4px 16px 0 rgba(0, 0, 0, 0.12);
+
+// =============================================
+// 层级变量
+// =============================================
+
+$z-index-negative: -1;
+$z-index-base: 0;
+$z-index-docked: 10;
+$z-index-dropdown: 1000;
+$z-index-sticky: 1020;
+$z-index-banner: 1030;
+$z-index-overlay: 1040;
+$z-index-modal: 1050;
+$z-index-popover: 1060;
+$z-index-tooltip: 1070;
+$z-index-toast: 1080;
+
+// =============================================
+// 过渡动画变量
+// =============================================
+
+// 过渡时长
+$transition-duration-fast: 150ms;
+$transition-duration-base: 300ms;
+$transition-duration-slow: 500ms;
+
+// 过渡缓动函数
+$transition-timing-ease: ease;
+$transition-timing-ease-in: ease-in;
+$transition-timing-ease-out: ease-out;
+$transition-timing-ease-in-out: ease-in-out;
+$transition-timing-linear: linear;
+
+// 常用过渡
+$transition-all: all $transition-duration-base $transition-timing-ease;
+$transition-colors:
+  color $transition-duration-base $transition-timing-ease,
+  background-color $transition-duration-base $transition-timing-ease,
+  border-color $transition-duration-base $transition-timing-ease;
+$transition-opacity: opacity $transition-duration-base $transition-timing-ease;
+$transition-transform: transform $transition-duration-base
+  $transition-timing-ease;
+$transition-shadow: box-shadow $transition-duration-base $transition-timing-ease;
+
+// =============================================
+// 断点变量
+// =============================================
+
+$breakpoint-xs: 480px;
+$breakpoint-sm: 640px;
+$breakpoint-md: 768px;
+$breakpoint-lg: 1024px;
+$breakpoint-xl: 1280px;
+$breakpoint-2xl: 1536px;
+
+// 容器最大宽度
+$container-max-width-sm: 640px;
+$container-max-width-md: 768px;
+$container-max-width-lg: 1024px;
+$container-max-width-xl: 1280px;
+$container-max-width-2xl: 1536px;
+
+// =============================================
+// 组件特定变量
+// =============================================
+
+// 导航栏
+$navbar-height: 60px;
+$navbar-bg: rgba(255, 255, 255, 0.95);
+$navbar-border: rgba(0, 0, 0, 0.06);
+$navbar-backdrop-filter: blur(12px);
+
+// 侧边栏
+$sidebar-width: 240px;
+$sidebar-collapsed-width: 64px;
+
+// 头像尺寸
+$avatar-size-xs: 24px;
+$avatar-size-sm: 32px;
+$avatar-size-base: 40px;
+$avatar-size-lg: 48px;
+$avatar-size-xl: 64px;
+$avatar-size-2xl: 80px;
+
+// 按钮高度
+$button-height-sm: 32px;
+$button-height-base: 40px;
+$button-height-lg: 48px;
+
+// 输入框高度
+$input-height-sm: 32px;
+$input-height-base: 40px;
+$input-height-lg: 48px;
+
+// =============================================
+// 工具函数
+// =============================================
+
+// 响应式断点 mixin
+@mixin respond-to($breakpoint) {
+  @if $breakpoint == xs {
+    @media (min-width: $breakpoint-xs) {
+      @content;
+    }
+  }
+  @if $breakpoint == sm {
+    @media (min-width: $breakpoint-sm) {
+      @content;
+    }
+  }
+  @if $breakpoint == md {
+    @media (min-width: $breakpoint-md) {
+      @content;
+    }
+  }
+  @if $breakpoint == lg {
+    @media (min-width: $breakpoint-lg) {
+      @content;
+    }
+  }
+  @if $breakpoint == xl {
+    @media (min-width: $breakpoint-xl) {
+      @content;
+    }
+  }
+  @if $breakpoint == 2xl {
+    @media (min-width: $breakpoint-2xl) {
+      @content;
+    }
+  }
+}
+
+// 文字省略号 mixin
+@mixin text-ellipsis($lines: 1) {
+  @if $lines == 1 {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  } @else {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: $lines;
+    -webkit-box-orient: vertical;
+  }
+}
+
+// Flex 居中 mixin
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// 绝对居中 mixin
+@mixin absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+// 清除浮动 mixin
+@mixin clearfix {
+  &::after {
+    content: '';
+    display: table;
+    clear: both;
+  }
+}
