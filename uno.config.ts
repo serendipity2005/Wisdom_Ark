@@ -8,7 +8,7 @@ import {
   presetWind3,
 } from 'unocss';
 import presetRemToPx from '@unocss/preset-rem-to-px';
-import { cursorTo } from 'readline';
+
 export default defineConfig({
   // 预设配置
   presets: [

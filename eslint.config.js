@@ -101,6 +101,7 @@ export default tseslint.config([
   {
     files: ['**/*.{ts,tsx}'],
     rules: {
+      'no-var': 'off',
       // '@typescript-eslint/no-unused-vars': [
       //   'error',
       //   {

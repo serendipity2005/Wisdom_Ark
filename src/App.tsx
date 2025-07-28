@@ -1,15 +1,30 @@
-import { useState } from 'react';
-import { Button } from 'antd';
+import { Suspense } from 'react';
 import './App.scss';
-import Test from '@/components/Test';
-function App() {
-  const [count, setCount] = useState(0);
+import '@/mock';
 
+// import useRouter from '@/router/index';
+// import routes from '~react-pages';
+// function App() {
+//   return (
+//     <div className="App">
+//         {/* <Test />
+//       <Button>123</Button> */}
+//       <Suspense fallback={<div>Loading...</div>}>
+//         <RouterProvider router={router}></RouterProvider>
+//       </Suspense>
+//     </div>
+//   );
+// }
+import { useRoutes } from 'react-router-dom';
+import { router } from './router/index';
+
+function App() {
   return (
-    <>
-      <Test />
-    </>
+    <div className="App">
+      {/* <Test />
+      <Button>123</Button> */}
+      <Suspense fallback={<div>Loading...</div>}>{useRoutes(router)}</Suspense>
+    </div>
   );
 }
-
 export default App;
