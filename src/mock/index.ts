@@ -391,6 +391,38 @@ const customizeMenuList = [
   },
 ];
 
+const adminMenuList = [
+  {
+    icon: 'UserOutlined',
+    label: '用户管理',
+    key: 'user',
+    children: [
+      {
+        icon: 'TeamOutlined',
+        label: '普通用户',
+        key: 'general',
+      },
+      {
+        icon: 'SolutionOutlined',
+        label: '管理员',
+        key: 'administrator',
+      },
+    ],
+  },
+  {
+    icon: 'FileTextOutlined',
+    label: '审核管理',
+    key: 'audit',
+    children: [
+      {
+        icon: 'FileProtectOutlined',
+        label: '文章审核',
+        key: 'article',
+      },
+    ],
+  },
+];
+
 //菜单接口
 Mock.mock('https://www.demo.com/menu', 'get', () => {
   const token = sessionStorage.getItem('token');
@@ -411,6 +443,12 @@ Mock.mock('https://www.demo.com/menu', 'get', () => {
       code: 200,
       message: '请求成功',
       data: managerMenuList,
+    };
+  } else if (token == 'mocktoken1596684751') {
+    return {
+      code: 200,
+      message: '请求成功',
+      data: adminMenuList,
     };
   } else {
     return {
