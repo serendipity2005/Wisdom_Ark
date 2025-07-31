@@ -1,8 +1,9 @@
 // 颜色变量 - 仿掘金配色方案
 // 主色调
+$primary-text-color: #525868; //文本
 $primary-color: #1e80ff;
-$primary-light: #bae0ff;
-$primary-dark: #0066cc;
+$primary-light: #e6f4ff;
+$primary-dark: #0066cc; //主色调的深色
 $primary-gradient: linear-gradient(135deg, #1e80ff 0%, #00d4aa 100%);
 
 // 辅助色
@@ -351,3 +352,47 @@ $input-height-lg: 48px;
     clear: both;
   }
 }
+// 在 variables.scss 末尾添加
+@mixin generate-css-variables() {
+  :root {
+    // 颜色变量
+    --primary-text-color: #{$primary-text-color};
+    --primary-color: #{$primary-color};
+    --primary-light: #{$primary-light};
+    --primary-dark: #{$primary-dark};
+
+    --juejin-blue: #{$juejin-blue};
+    --juejin-orange: #{$juejin-orange};
+
+    // 文字颜色
+    --text-primary: #{$text-primary};
+    --text-secondary: #{$text-secondary};
+    --text-tertiary: #{$text-tertiary};
+
+    // 字体大小
+    --font-size-xs: #{$font-size-xs};
+    --font-size-sm: #{$font-size-sm};
+    --font-size-base: #{$font-size-base};
+    --font-size-lg: #{$font-size-lg};
+    --font-size-xl: #{$font-size-xl};
+
+    // 间距
+    --spacing-1: #{$spacing-1};
+    --spacing-2: #{$spacing-2};
+    --spacing-3: #{$spacing-3};
+    --spacing-4: #{$spacing-4};
+
+    // 圆角
+    --border-radius-sm: #{$border-radius-sm};
+    --border-radius-base: #{$border-radius-base};
+    --border-radius-md: #{$border-radius-md};
+
+    // 阴影
+    --box-shadow-sm: #{$box-shadow-sm};
+    --box-shadow-base: #{$box-shadow-base};
+    --box-shadow-card: #{$box-shadow-card};
+  }
+}
+
+// 调用 mixin 生成 CSS 变量
+@include generate-css-variables();

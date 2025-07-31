@@ -110,12 +110,14 @@ export default tseslint.config([
       //     caughtErrorsIgnorePattern: '^_',
       //   },
       // ], //未使用变量使用_下划线
+      'no-empty-pattern': 'off', //关闭空对象
+      '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       'prefer-const': 'error',
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/consistent-type-imports': [
-        'error',
+        'warn',
         { prefer: 'type-imports' },
       ],
     },

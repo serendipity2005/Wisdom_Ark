@@ -1,5 +1,11 @@
-import React from 'react';
+import FrontLayout from '@/layouts/frontLayout';
+import { Layout, theme } from 'antd';
+import { CircleArrowOutUpLeftIcon } from 'lucide-react';
+import { Outlet } from 'react-router';
 
 export default function Home() {
-  return <div>home</div>;
+  const {
+    token: { colorBgContainer },
+  } = theme.useToken();
+  return <FrontLayout></FrontLayout>;
 }

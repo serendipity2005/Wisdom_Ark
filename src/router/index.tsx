@@ -36,10 +36,6 @@ console.log(frontRoutes);
 // }
 
 export const router = [
-  {
-    path: '/',
-    element: <NoFound></NoFound>,
-  },
   // 前台路由（自动生成）
   ...frontRoutes,
   // 后台路由（动态生成）
@@ -52,6 +48,10 @@ export const router = [
   //   ),
   // })),
   ...adminRoutes,
+  {
+    path: '*',
+    element: <div>404 Not Found</div>,
+  },
 ];
 // export const router = createBrowserRouter([
 //   {
@@ -60,8 +60,5 @@ export const router = [
 //     children: frontRoutes, // 前台自动路由
 //   },
 //   adminRoutes, // 后台手动路由
-//   {
-//     path: '*',
-//     element: <div>404 Not Found</div>,
-//   },
+
 // ]);

@@ -1,11 +1,10 @@
-@use 'variables.scss';
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
+  color: $primary-text-color;
   background-color: #242424;
 
   font-synthesis: none;
@@ -52,6 +51,14 @@ button:focus-visible {
 // 字体悬停样式
 .t-hover {
   --at-apply: 'cursor-pointer hover:text-primary  transition-all duration-200 ease-in-out';
+}
+
+// 图标
+.ant-menu-item-selected .icon {
+  color: #1890ff; // Ant Design 的默认主色，可以根据需要修改
+}
+.icon {
+  color: #666666; // 自定义的默认颜色
 }
 
 @media (prefers-color-scheme: light) {
