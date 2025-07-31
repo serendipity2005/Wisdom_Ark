@@ -16,14 +16,16 @@ import '@/mock';
 //   );
 // }
 import { useRoutes } from 'react-router-dom';
-import { router } from './router/index';
+// import { staticRouter } from './router';
+import { useAppRouter } from './router';
 
 function App() {
+  const routes = useAppRouter();
   return (
     <div className="App">
       {/* <Test />
       <Button>123</Button> */}
-      <Suspense fallback={<div>Loading...</div>}>{useRoutes(router)}</Suspense>
+      <Suspense fallback={<div>Loading...</div>}>{useRoutes(routes)}</Suspense>
     </div>
   );
 }

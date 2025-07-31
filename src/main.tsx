@@ -11,13 +11,16 @@ const queryClient = new QueryClient();
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/es/locale/zh_CN';
 import { BrowserRouter } from 'react-router-dom';
+import { RoutesProvider } from '@/router/context/routesContext.tsx';
 createRoot(document.getElementById('root')!).render(
   <Provider store={store}>
     <PersistGate loading={<div>Loading...</div>} persistor={persistor}>
       <QueryClientProvider client={queryClient}>
         <ConfigProvider locale={zhCN}>
           <BrowserRouter>
-            <App />
+            <RoutesProvider>
+              <App />
+            </RoutesProvider>
           </BrowserRouter>
         </ConfigProvider>
       </QueryClientProvider>
