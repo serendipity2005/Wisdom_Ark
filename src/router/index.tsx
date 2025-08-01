@@ -2,17 +2,12 @@ import Admin from '@/pages/admin';
 import { useAdminRoutes } from './adminRoutes';
 import { frontRoutes } from './frontRoutes';
 import NoFound from '@/pages/[...all]';
-import Home from '@/pages/home';
-console.log(frontRoutes);
 
+import { lazy } from 'react';
+console.log(frontRoutes);
+const Synthesis = lazy(() => import('@/pages/index/synthesis'));
 // 静态路由配置
-export const staticRouter = [
-  {
-    path: '/',
-    element: <Home />,
-  },
-  ...frontRoutes,
-];
+export const staticRouter = [...frontRoutes];
 
 // 动态路由版本
 export const useAppRouter = () => {

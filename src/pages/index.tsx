@@ -4,12 +4,14 @@ import { Layout, theme, type MenuProps } from 'antd';
 import { BookMarked, Star } from 'lucide-react';
 import MySider from '@/layouts/frontLayout/Sider';
 type MenuItem = Required<MenuProps>['items'][number];
+import MainContainer from '@/layouts/frontLayout/MainContainer';
+import MyContent from '@/layouts/frontLayout/Content';
 
 const menu: MenuItem[] = [
   {
     key: '/following',
     icon: <BookMarked className="icon" size={15} />,
-    label: '关注',
+    label: '关注22',
   },
   {
     key: '/synthesis',
@@ -23,5 +25,11 @@ function Sider() {
 // 首页
 
 export default function index() {
-  return <FrontLayout siderNode={<Sider />}></FrontLayout>;
+  return (
+    <FrontLayout>
+      <MainContainer siderNode={<Sider />}>
+        <MyContent />
+      </MainContainer>
+    </FrontLayout>
+  );
 }

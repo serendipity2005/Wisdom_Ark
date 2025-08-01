@@ -1,13 +1,18 @@
-// MySider
+// MySider(若不传 则自动使用默认值)
+// 1.接收props.children（插槽）,则直接渲染
+// 2.接收menu  用于渲染菜单
+// 3.接收defaultSelectedKeys  用于设置默认选中的菜单项
+
 import { Menu, theme, type MenuProps } from 'antd';
 import Sider from 'antd/es/layout/Sider';
-import { useEffect } from 'react';
+
 import './index.scss';
 import { BookMarked, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useScrollVisibility } from '@/hooks/useScrollVisibility';
 
 interface MySiderProps {
-  isHeaderVisible?: boolean;
   children?: React.ReactNode;
   menu?: MenuProps['items'];
   defaultSelectedKeys?: string[];
@@ -27,24 +32,20 @@ const defaultMenu = [
 ];
 
 const MySider: React.FC<MySiderProps> = (props: MySiderProps) => {
-  const { isHeaderVisible, menu, defaultSelectedKeys } = props;
-  const navigate = useNavigate();
-
-  console.log('Side接收到', menu, defaultSelectedKeys);
-  useEffect(() => {
-    console.log('Side接收到', menu, defaultSelectedKeys);
-  }, [menu, defaultSelectedKeys]);
-
+  const { menu, defaultSelectedKeys } = props;
   const {
     token: { colorBgContainer },
   } = theme.useToken();
-  const handleMenu = (e: any) => {
+
+  const navigate = useNavigate();
+  const visible = useScrollVisibility();
+  const handleMenu: MenuProps['onClick'] = (e) => {
     navigate(e.key);
   };
 
   return (
     <Sider
-      className={`sider ${isHeaderVisible ? '' : 'sideTop'}`}
+      className={`sider ${visible ? '' : 'sideTop'}`}
       style={{ background: colorBgContainer }}
       width={200}
     >
