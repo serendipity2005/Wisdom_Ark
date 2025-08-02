@@ -1,3 +1,4 @@
+// 接收1.headerMenu,
 import './index.scss';
 import {
   Layout,
@@ -15,11 +16,10 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { BellFilled, CaretDownFilled } from '@ant-design/icons';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useScrollVisibility } from '@/hooks/useScrollVisibility';
 
 type MenuItem = Required<MenuProps>['items'][number];
 interface MyHeaderProps {
-  handleIsVisible?: (visible: boolean) => void;
   headMenu?: MenuItem[];
   children?: React.ReactNode;
 }
@@ -59,7 +59,6 @@ const items = [
 
 export default function MyHeader(props?: MyHeaderProps) {
   const { headMenu } = props || {};
-  console.log(props?.children);
 
   const {
     token: { colorBgContainer },
@@ -68,43 +67,7 @@ export default function MyHeader(props?: MyHeaderProps) {
     navigate(e.key);
   };
   const navigate = useNavigate();
-
-  const { handleIsVisible } = (props as MyHeaderProps) || {};
-  const [visible, setVisible] = useState<boolean>(true);
-  const lastScrollY = useRef<number>(0);
-  const handleScroll = useCallback(() => {
-    // 记录上次的
-    const currentScrollY = window.scrollY;
-
-    // 如果没滚动多少 则不隐藏
-    if (currentScrollY < 100) {
-      return;
-    }
-    //  如果滚动了太多
-
-    if (currentScrollY - lastScrollY.current > 0) {
-      if (visible) {
-        setVisible(false);
-      }
-    } else {
-      if (!visible) {
-        setVisible(true);
-      }
-    }
-    lastScrollY.current = currentScrollY;
-  }, [visible]);
-  useEffect(() => {
-    if (handleIsVisible) {
-      handleIsVisible(visible);
-    }
-  }, [visible, handleIsVisible]);
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [handleScroll]);
+  const visible = useScrollVisibility();
   return (
     <Header
       className={`myHeader ${visible ? '' : 'hide'}`}

@@ -9,7 +9,7 @@ import {
   Typography,
 } from 'antd';
 import './index.scss';
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 const { Text, Title } = Typography;
 // 热门话题数据
 const hotTopics = [
