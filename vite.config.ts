@@ -17,9 +17,18 @@ export default defineConfig({
       dirs: [
         {
           dir: 'src/pages',
-          baseRoute: '',
+          baseRoute: '/',
         },
       ],
+      extendRoute(route) {
+        if (route.path === 'home') {
+          return {
+            ...route,
+            redirect: '/',
+          };
+        }
+        return route;
+      },
       extensions: ['tsx', 'jsx'],
       // 排除后台相关文件
       exclude: ['**/admin/**', '**/components/**'],
@@ -36,13 +45,12 @@ export default defineConfig({
       '@': path.resolve(__dirname, 'src'),
     },
   },
-  // css: {
-  //   preprocessorOptions: {
-  //     scss: {
-  //       // 自动导入全局SCSS变量
-  //       additionalData: `@use "@/assets/styles/variables.scss";`,
-  //     },
-  //   },
-
-  // },
+  css: {
+    preprocessorOptions: {
+      scss: {
+        // 自动导入全局SCSS变量
+        additionalData: `@import "@/assets/styles/variables.scss";`,
+      },
+    },
+  },
 });

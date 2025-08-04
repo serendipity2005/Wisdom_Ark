@@ -1,0 +1,52 @@
+.user-popover-content {
+  padding: 10px;
+  text-align: center;
+  width: 200px;
+
+  .user-header {
+    margin-bottom: 10px;
+
+    .flex {
+      display: flex;
+      align-items: center;
+    }
+
+    .tag {
+      margin-left: 5px;
+      font-size: 12px;
+      padding: 2px 5px;
+      border-radius: 3px;
+
+      &.lv-tag {
+        background-color: #e6f7ff;
+        color: #1890ff;
+      }
+
+      &.jy-tag {
+        background-color: #fff0f6;
+        color: #eb2f96;
+      }
+    }
+  }
+
+  .action-buttons {
+    display: flex;
+    margin-bottom: 10px;
+    button + button {
+      margin-left: 10px;
+    }
+    button {
+      width: 100%;
+      outline: none;
+    }
+  }
+
+  .stats {
+    display: flex;
+    justify-content: space-around;
+
+    .stat-item {
+      text-align: center;
+    }
+  }
+}

@@ -6,4 +6,4 @@ echo "🔍 Running pre-commit checks..."
 # 运行 lint-staged
 npx lint-staged
 
-echo "✅ Pre-commit checks passed!"
+echo "✅ Pre-commit checks passed!"kk

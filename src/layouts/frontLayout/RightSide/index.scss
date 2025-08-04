@@ -1,0 +1,36 @@
+.rightSide-container {
+  .article-rightSide {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1;
+    .article-rank {
+      padding: 12px 8px;
+      padding-top: 0;
+      .ant-card-head {
+        padding: 10px 0;
+      }
+      .ant-space-item:last-child {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+    }
+  }
+  .sticky-rightSide {
+    position: fixed;
+    display: none;
+    z-index: -1;
+    top: 20px;
+  }
+  .top {
+    visibility: visible;
+    display: block;
+    z-index: 5;
+  }
+  .rightSide-placeholder {
+    height: 1100px;
+    width: 100%;
+  }
+}
