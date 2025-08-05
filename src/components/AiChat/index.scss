@@ -1,0 +1,22 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+
+.ai-content {
+  padding: 24px;
+  display: flex;
+  background-color: #fff;
+  flex-direction: column;
+  height: calc(100vh - 64px);
+
+  .main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    // max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+  }
+}

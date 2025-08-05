@@ -1,4 +1,3 @@
-import Admin from '@/pages/admin';
 import { useAdminRoutes } from './adminRoutes';
 import { frontRoutes } from './frontRoutes';
 import NoFound from '@/pages/[...all]';

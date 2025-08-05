@@ -44,6 +44,10 @@ const defaultHeadMenu: MenuItem[] = [
     key: '/live',
     label: '直播',
   },
+  {
+    key: '/ai',
+    label: 'AI',
+  },
 ];
 // 创作者中心菜单
 const items = [
