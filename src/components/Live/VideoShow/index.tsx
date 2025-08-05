@@ -12,50 +12,35 @@ import {
   message,
 } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
-import videoUrl from '../../../assets/video/play.mp4';
+import type { VideoData } from '../VideoItem/videoData';
 
-// 定义视频数据接口
-interface VideoData {
-  title: string;
-  views: string;
-  coverUrl: string;
-  liveUrl: string;
-  videoUrl: string;
+interface VideoShowProps {
+  selectedVideo: VideoData | null;
 }
 
-export default function VideoShow() {
+export default function VideoShow({ selectedVideo }: VideoShowProps) {
   const [preview, setPreview] = useState(false);
 
-  // 直播数据
-  const videoData: VideoData = {
-    title: '前端性能优化实战教程',
-    views: '1234',
-    coverUrl:
-      'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-    liveUrl: 'https://ant.design/',
-    videoUrl: videoUrl,
-  };
+  if (!selectedVideo) {
+    return <div className="text-white">请选择一个视频</div>;
+  }
 
   // 复制文本到剪贴板
   const copyToClipboard = () => {
     navigator.clipboard
-      .writeText(videoData.liveUrl)
-      .then(() => {
-        message.success('复制成功');
-      })
-      .catch(() => {
-        message.error('复制失败');
-      });
+      .writeText(selectedVideo.liveUrl)
+      .then(() => message.success('复制成功'))
+      .catch(() => message.error('复制失败'));
   };
 
   // 二维码内容
   const qrCode = (
     <div>
       <Space direction="vertical" align="center">
-        <QRCode value={videoData.liveUrl} />
+        <QRCode value={selectedVideo.liveUrl} />
         <div className="input-copy">
           <Input
-            value={videoData.liveUrl}
+            value={selectedVideo.liveUrl}
             disabled
             suffix={
               <Button icon={<CopyOutlined />} onClick={copyToClipboard} />
@@ -67,14 +52,14 @@ export default function VideoShow() {
   );
 
   return (
-    <div className="w-800 h-540 flex justify-center items-center bg-black rounded-tl-5 rounded-tr-5 flex-col">
+    <div className="w-810 h-540 flex justify-center items-center bg-black rounded-tl-5 rounded-tr-5 flex-col">
       {/* 视频信息 */}
       <div className="title-block w-99.8% h-50 bg-white mb-8 rounded-tl-5 rounded-tr-5 flex">
         <div>
-          <div className="title text-16 font-bold">{videoData.title}</div>
+          <div className="title text-16 font-bold">{selectedVideo.title}</div>
           <div className="views text-11 flex items-center mt-1">
             <Eye className="w-15 h-15 mr-3" />
-            <span>{videoData.views}</span>
+            <span>{selectedVideo.views}</span>
           </div>
         </div>
         <div className="options flex-1 flex justify-end">
@@ -103,16 +88,16 @@ export default function VideoShow() {
       {/* 视频播放区域 */}
       <div className="video w-99.8% h-470 bg-white">
         <video className="w-full h-full object-contain" controls>
-          <source src={videoData.videoUrl} type="video/mp4" />
+          <source src={selectedVideo.videoUrl} type="video/mp4" />
         </video>
       </div>
       {/* 图片预览组件 */}
       <Image
         style={{ display: 'none' }}
-        src={videoData.coverUrl}
+        src={selectedVideo.coverUrl}
         preview={{
           visible: preview,
-          src: videoData.coverUrl,
+          src: selectedVideo.coverUrl,
           onVisibleChange: (value) => setPreview(value),
         }}
       />

@@ -1,92 +1,65 @@
-import './index.scss';
-import { CirclePlay } from 'lucide-react';
-import { useState } from 'react';
-
-// 定义视频项的接口
-interface VideoItem {
-  id: number;
-  coverUrl: string;
-  title: string;
-}
-
-// 视频数据
-const videoData: VideoItem[] = [
-  {
-    id: 1,
-    coverUrl:
-      'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-    title: 'AI编程社 共学计划Vol.6',
-  },
-  {
-    id: 2,
-    coverUrl:
-      'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-    title: 'AI编程社 共学计划Vol.5',
-  },
-  {
-    id: 3,
-    coverUrl:
-      'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-    title: 'AI编程社 共学计划Vol.4',
-  },
-  {
-    id: 4,
-    coverUrl:
-      'https://zos.alipayobjects.com/rmsportal/jkjgkEfvpUPVyRjUImniVslZfWPnJuuZ.png',
-    title: 'AI编程社 共学计划Vol.3',
-  },
-];
+import { Avatar, List } from 'antd';
+import { Flame, RotateCcw, Flower, Award } from 'lucide-react';
 
 export default function VideoList() {
-  return (
-    <div className="w-250 h-540 bg-black flex flex-col justify-center items-center ml-20 p-2">
-      {videoData.map((item) => (
-        <VideoItemComponent key={item.id} item={item} />
-      ))}
-    </div>
-  );
-}
+  const data = [
+    { title: 'Ant Design Title 1' },
+    { title: 'Ant Design Title 2' },
+    { title: 'Ant Design Title 3' },
+    { title: 'Ant Design Title 4' },
+  ];
 
-// 视频项组件
-function VideoItemComponent({ item }: { item: VideoItem }) {
-  const [isHovered, setIsHovered] = useState(false);
+  // 定义前三名的颜色
+  const rankColors = ['#ffde57', '#C0C0C0', '#CD7F32'];
 
   return (
-    <div
-      className={`video-item w-96% h-24% cursor-pointer bg-white rounded-1 bg-cover bg-center my-4 relative transition-all duration-300 ${
-        isHovered ? 'opacity-100' : 'opacity-80'
-      }`}
-      style={{
-        backgroundImage: `url(${item.coverUrl})`,
-      }}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-    >
-      <div
-        className={`mask absolute inset-0  transition-opacity duration-300 ${
-          isHovered ? 'opacity-0' : 'opacity-100'
-        }`}
-        style={{ zIndex: 1 }}
-      ></div>
-
-      <div
-        className="playback-tag absolute top-2 right-2 w-50 h-20 flex items-center justify-center bg-#5da7f5 text-white rounded-30% text-11"
-        style={{ zIndex: 3 }}
-      >
-        <CirclePlay className="w-13 h-13" />
-        <span className="ml-2"> 回放</span>
+    <div className="w-350 h-400 bg-white rounded-10 p-15">
+      <div className="font-bold flex items-center mb-10">
+        <Flame className="mr-5 w-20 h-20" />
+        热门主播榜
+        <span className="ml-auto text-primary flex items-center font-300 text-13 cursor-pointer">
+          <RotateCcw className="mr-3 w-15 h-15 font-300" />
+          刷新
+        </span>
       </div>
 
-      <div
-        className="title absolute w-full h-40 bottom-0 text-white text-15 text-center flex items-center justify-center"
-        style={{ zIndex: 3 }}
-      >
-        <div
-          className="title-bg absolute inset-0 bg-gradient-to-t from-black/70 to-transparent rounded-5"
-          style={{ zIndex: 2 }}
-        ></div>{' '}
-        <span className="relative z-10">{item.title}</span>
-      </div>
+      <List
+        itemLayout="horizontal"
+        dataSource={data}
+        renderItem={(item, index) => (
+          <List.Item className="py-3">
+            {/* 只在前三个显示Award图标，且颜色不同 */}
+            {index < 3 && (
+              <div className="mr-4 flex items-start pt-1">
+                <Award
+                  className="w-22 h-22"
+                  style={{
+                    color: rankColors[index],
+                  }}
+                />
+              </div>
+            )}
+            {index >= 3 && <div className="mr-4 w-22 h-22"></div>}
+            <List.Item.Meta
+              avatar={
+                <Avatar
+                  src={`https://api.dicebear.com/7.x/miniavs/svg?seed=${index}`}
+                />
+              }
+              title={<a href="https://ant.design">{item.title}</a>}
+              description={
+                <div>
+                  <div className="flex items-center">
+                    <Flower className="text-#ff77a3 w-15 h-15 mr-4" />
+                    <span className="text-14 color-#ff77a3">2211</span>
+                  </div>
+                </div>
+              }
+            />
+            <div className="flex items-center">1121</div>
+          </List.Item>
+        )}
+      />
     </div>
   );
 }

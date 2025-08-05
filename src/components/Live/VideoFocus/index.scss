@@ -1,0 +1,23 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+.live-item {
+  cursor: pointer;
+  border: 1px solid #25c2ff;
+  padding: 5px;
+  box-shadow: 0 0 8px 1px #25c2ff;
+  animation: move 2s ease-in-out infinite;
+}
+@keyframes move {
+  0% {
+    box-shadow: 0 0 5px 0px #25c2ff;
+  }
+  50% {
+    box-shadow: 0 0 8px 1px rgba(37, 194, 255, 0.8);
+  }
+  100% {
+    box-shadow: 0 0 0px 0px rgba(37, 194, 255, 0);
+  }
+}
