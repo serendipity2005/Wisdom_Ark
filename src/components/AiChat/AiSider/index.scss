@@ -1,0 +1,55 @@
+.ai-sider {
+  background: #fafafa;
+  border-right: 1px solid #f0f0f0;
+  padding: 16px 0;
+
+  .sider-title {
+    margin: 0 10px 10px 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    // .sider-logo-icon{
+    //     width: 23%;
+    // }
+
+    // .sider-logo-text{
+    //     width: 47%;
+    // }
+
+    .sider-logo {
+      width: 70%;
+      height: 80%;
+      // display: flex;
+      // align-items: center;
+    }
+
+    .sider-title-btn {
+      background: none;
+      box-shadow: none;
+      color: #58a4f5;
+      font-size: 23px;
+
+      &:hover {
+        background-color: #e9ebec;
+        color: #58a4f5;
+      }
+    }
+  }
+
+  .sider-btn {
+    padding: 0 16px;
+    margin-bottom: 16px;
+
+    .sider-btn-add {
+      border-radius: 6px;
+      height: 40px;
+    }
+  }
+
+  .sider-menu {
+    background: transparent;
+    border: none;
+    font-size: 14px;
+  }
+}
