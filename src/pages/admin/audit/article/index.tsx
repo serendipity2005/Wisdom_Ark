@@ -1,5 +1,5 @@
-import ArticleAdm from '@/components/Admin/ArticleAdm';
+import ArticleTable from '@/components/Admin/ArticleTable';
 
 export default function article() {
-  return <ArticleAdm />;
+  return <ArticleTable />;
 }

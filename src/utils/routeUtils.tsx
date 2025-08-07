@@ -61,7 +61,6 @@ export const transformRoutes = (
       !route.permissions ||
       route.permissions.some((p) => permissions.includes(p));
     let transformed: FrontendRoute;
-
     if (hasPermission) {
       const Component = lazyLoad(routePath, fullPath);
       transformed = {
@@ -112,7 +111,7 @@ export const generateMenus = (
       const fullPath = parentPath ? `${parentPath}/${route.key}` : route.key;
       return {
         key: route.key,
-        label: parentPath ? (
+        label: !route.children ? (
           <Link to={fullPath}>{route.label}</Link>
         ) : (
           route.label

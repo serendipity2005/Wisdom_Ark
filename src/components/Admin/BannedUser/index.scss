@@ -1,0 +1,11 @@
+.bannedBtn:not(.ant-switch-checked) {
+  background-color: #d9d9d9;
+}
+
+.bannedBtn.ant-switch-checked {
+  background-color: #ff6060;
+}
+
+.bannedBtn.ant-switch-checked:hover {
+  background-color: #fb9595 !important;
+}
