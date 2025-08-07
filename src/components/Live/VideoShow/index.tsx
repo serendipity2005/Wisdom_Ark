@@ -52,7 +52,7 @@ export default function VideoShow({ selectedVideo }: VideoShowProps) {
   );
 
   return (
-    <div className="w-810 h-540 flex justify-center items-center bg-black rounded-tl-5 rounded-tr-5 flex-col">
+    <div className="w-800 h-540 flex justify-center items-center bg-black rounded-tl-5 rounded-tr-5 flex-col">
       {/* 视频信息 */}
       <div className="title-block w-99.8% h-50 bg-white mb-8 rounded-tl-5 rounded-tr-5 flex">
         <div>

@@ -111,11 +111,7 @@ const LiveCard = ({ item }: { item: LiveItem }) => {
       className="overflow-hidden transition-all duration-300 hover:shadow-md"
       cover={
         <div className="relative">
-          <img
-            alt={item.title}
-            src={item.image}
-            className="w-full object-cover"
-          />
+          <img src={item.image} className="w-full object-cover" />
           {/* 直播标签 */}
           <div className="absolute top-5 left-5 bg-blue-400 text-white text-11 px-2 py-1 rounded-5 flex items-center">
             <span className="mr-1 px-6 py-3">{item.tag}</span>

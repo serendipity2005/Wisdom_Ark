@@ -28,7 +28,6 @@ export default function VideoList() {
         dataSource={data}
         renderItem={(item, index) => (
           <List.Item className="py-3">
-            {/* 只在前三个显示Award图标，且颜色不同 */}
             {index < 3 && (
               <div className="mr-4 flex items-start pt-1">
                 <Award
@@ -60,6 +59,9 @@ export default function VideoList() {
           </List.Item>
         )}
       />
+      {/* <div className="w-full">
+        <Button type="text">发起直播</Button>
+      </div> */}
     </div>
   );
 }
