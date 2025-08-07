@@ -2,19 +2,27 @@
 
 import type React from 'react';
 import { useState } from 'react';
-import { Table, Button, Space, Tag, Tooltip } from 'antd';
-import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Tag, Switch } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
+
+import './index.scss';
 
 // 模拟数据类型定义
 interface JobPosition {
   id: number;
   userName: string;
   email: string;
-  identity: string;
   balance: string;
+  banned: string;
+  deblocking: string;
   status: 'active' | 'inactive' | 'pending';
 }
-function ArticleTable() {
+
+const onChange = (checked: boolean) => {
+  console.log(`switch to ${checked}`);
+};
+
+function BannedUser() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -25,40 +33,45 @@ function ArticleTable() {
       id: 1,
       userName: 'sys',
       email: '20001104@sys.com',
-      identity: 'pending',
       balance: '5114',
+      banned: '2023-09-01',
+      deblocking: '2025-09-01',
       status: 'inactive',
     },
     {
       id: 2,
       userName: 'wcq',
       email: '20000511@wcq.com',
-      identity: 'pending',
       balance: '5114',
+      banned: '2022-08-01',
+      deblocking: '2025-09-01',
       status: 'inactive',
     },
     {
       id: 3,
       userName: '檀健次',
       email: '19901005@tjc.com',
-      identity: 'pending',
       balance: '1005',
+      banned: '2023-09-01',
+      deblocking: '2025-09-01',
       status: 'active',
     },
     {
       id: 4,
       userName: '小炭火',
       email: '20040501@mq.com',
-      identity: 'active',
       balance: '1005',
+      banned: '2024-10-05',
+      deblocking: '2025-11-04',
       status: 'pending',
     },
     {
       id: 5,
       userName: '薯条派',
       email: '20040501@mq.com',
-      identity: 'inactive',
       balance: '5114',
+      banned: '2024-10-01',
+      deblocking: '2025-10-05',
       status: 'inactive',
     },
   ]);
@@ -83,26 +96,22 @@ function ArticleTable() {
       key: 'email',
     },
     {
-      title: '身份',
-      dataIndex: 'identity',
-      key: 'identity',
-      render: (status: string) => {
-        const statusConfig = {
-          active: { color: 'green', text: '普通用户' },
-          inactive: { color: 'red', text: '管理员' },
-          pending: { color: 'orange', text: '高级管理员' },
-        };
-        const config = statusConfig[status as keyof typeof statusConfig];
-        return <Tag color={config.color}>{config.text}</Tag>;
-      },
-    },
-    {
       title: '钱包余额',
       dataIndex: 'balance',
       key: 'balance',
     },
     {
-      title: '用户状态',
+      title: '封禁时间',
+      dataIndex: 'banned',
+      key: 'banned',
+    },
+    {
+      title: '解封时间',
+      dataIndex: 'deblocking',
+      key: 'deblocking',
+    },
+    {
+      title: '封禁原因',
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => {
@@ -120,15 +129,14 @@ function ArticleTable() {
       key: 'actions',
       render: (_, record: JobPosition) => (
         <Space>
-          <Tooltip title="查看">
-            <Button type="text" icon={<EyeOutlined />} size="small" />
-          </Tooltip>
-          <Tooltip title="编辑">
-            <Button type="text" icon={<EditOutlined />} size="small" />
-          </Tooltip>
-          <Tooltip title="删除">
-            <Button type="text" icon={<DeleteOutlined />} size="small" danger />
-          </Tooltip>
+          <Button type="text" icon={<EditOutlined />} size="small" />
+          <Switch
+            defaultChecked
+            checkedChildren="解禁"
+            unCheckedChildren="封禁"
+            className="bannedBtn"
+            onChange={onChange}
+          />
         </Space>
       ),
     },
@@ -166,4 +174,4 @@ function ArticleTable() {
   );
 }
 
-export default ArticleTable;
+export default BannedUser;

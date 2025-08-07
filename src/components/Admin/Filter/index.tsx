@@ -3,9 +3,6 @@
 import { Button, Input, Select, Dropdown, Row, Col } from 'antd';
 import { SearchOutlined, MoreOutlined } from '@ant-design/icons';
 import { useState } from 'react';
-
-import './index.scss';
-
 const { Option } = Select; // 解构出 Option 组件
 function Filter() {
   const [searchText, setSearchText] = useState('');
@@ -24,10 +21,10 @@ function Filter() {
   };
 
   return (
-    <Row className="content-filter" gutter={16}>
+    <Row className="content-filter mb-16" gutter={16}>
       <Col span={4}>
         <Select
-          className="content-select"
+          className="content-select w-full"
           placeholder="page 10"
           value={pageSize}
           onChange={setPageSize}
@@ -48,7 +45,7 @@ function Filter() {
       <Col span={4}>
         <Select
           placeholder="地点"
-          className="content-select"
+          className="content-select w-full"
           onChange={setLocationFilter}
         >
           <Option value="">全部地点</Option>
@@ -60,7 +57,7 @@ function Filter() {
       <Col span={4}>
         <Select
           placeholder="选择类型"
-          className="content-select"
+          className="content-select  w-full"
           onChange={setStatusFilter}
         >
           <Option value="">全部类型</Option>
@@ -72,7 +69,7 @@ function Filter() {
       <Col span={4}>
         <Select
           placeholder="选择时间"
-          className="content-select"
+          className="content-select w-full"
           onChange={setTimeFilter}
         >
           <Option value="">全部时间</Option>
