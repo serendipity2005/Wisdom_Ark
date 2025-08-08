@@ -12,13 +12,14 @@ function ContentPage() {
   const adminRoute = useAdminRoutes();
 
   const matchedRoutes = matchRoutes([adminRoute], location.pathname) || [];
+  console.log(matchedRoutes);
   const items = [
     {
       href: '/admin',
       title: (
         <>
           <HomeOutlined />
-          首页
+          admin
         </>
       ),
     },

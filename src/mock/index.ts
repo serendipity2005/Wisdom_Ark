@@ -440,6 +440,11 @@ const adminMenuList = [
         key: 'living',
       },
       {
+        icon: 'HistoryOutlined',
+        label: '历史直播',
+        key: 'history',
+      },
+      {
         icon: 'ExclamationCircleOutlined',
         label: '封禁主播',
         key: 'banned',

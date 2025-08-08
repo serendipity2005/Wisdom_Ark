@@ -10,3 +10,10 @@
 .ant-pagination .ant-pagination-item-active a {
   color: white;
 }
+
+.job-card-btn {
+  .ant-btn-variant-outlined:not(:disabled):not(.ant-btn-disabled):hover {
+    color: rgb(205, 2, 2);
+    border-color: rgb(205, 2, 2);
+  }
+}
