@@ -1,5 +1,3 @@
-import type { AxiosRequestConfig } from 'axios';
-
 import Mock from 'mockjs';
 Mock.setup({
   timeout: 500,
@@ -393,6 +391,11 @@ const customizeMenuList = [
 
 const adminMenuList = [
   {
+    icon: 'HomeOutlined',
+    label: '首页',
+    key: '',
+  },
+  {
     icon: 'UserOutlined',
     label: '用户管理',
     key: 'user',
@@ -416,10 +419,37 @@ const adminMenuList = [
     children: [
       {
         icon: 'FileProtectOutlined',
-        label: '文章审核',
+        label: '文章管理',
         key: 'article',
       },
+      {
+        icon: 'FileExclamationOutlined',
+        label: '举报管理',
+        key: 'report',
+      },
     ],
+  },
+  {
+    icon: 'VideoCameraOutlined',
+    label: '直播管理',
+    key: 'live',
+    children: [
+      {
+        icon: 'ClockCircleOutlined',
+        label: '正在直播',
+        key: 'living',
+      },
+      {
+        icon: 'ExclamationCircleOutlined',
+        label: '封禁主播',
+        key: 'banned',
+      },
+    ],
+  },
+  {
+    icon: 'FolderOpenOutlined',
+    label: '资源管理',
+    key: 'resource',
   },
 ];
 

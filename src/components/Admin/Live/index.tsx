@@ -1,14 +1,16 @@
 import { Card, Typography } from 'antd';
-import Filter from '../Filter';
-const { Title } = Typography;
 import { Outlet } from 'react-router-dom';
+import Filter from '../Filter';
 import { Suspense } from 'react';
-export default function Audit() {
+
+const { Title } = Typography;
+
+function Live() {
   return (
     <Card>
       <div className="content-header">
         <Title className="content-title" level={4}>
-          工作列表
+          直播管理
         </Title>
       </div>
 
@@ -22,3 +24,5 @@ export default function Audit() {
     </Card>
   );
 }
+
+export default Live;
