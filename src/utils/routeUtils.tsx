@@ -14,6 +14,7 @@ import {
   FileProtectOutlined,
   VideoCameraOutlined,
   FolderOpenOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import NoAccess from '@/layouts/adminLayout/NoAccess';
 
@@ -31,6 +32,7 @@ const iconMap = {
   FileProtectOutlined: <FileProtectOutlined />,
   VideoCameraOutlined: <VideoCameraOutlined />,
   FolderOpenOutlined: <FolderOpenOutlined />,
+  HistoryOutlined: <HistoryOutlined />,
   // 可以根据需要添加更多图标映射
 };
 
