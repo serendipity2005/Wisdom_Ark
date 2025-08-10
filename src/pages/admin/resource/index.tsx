@@ -1,5 +1,7 @@
+import Resource from '@/components/Admin/Resource';
+
 function resource() {
-  return <>资源管理</>;
+  return <Resource />;
 }
 
 export default resource;

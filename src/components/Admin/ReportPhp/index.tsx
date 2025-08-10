@@ -1,10 +1,10 @@
 // 表格组件
-
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Table, Button, Space, Tag, Tooltip } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import PreviewModal from '../Audit/PreviewModal';
+import Filter from '../Filter';
 
 // 模拟数据类型定义
 interface JobPosition {
@@ -38,6 +38,36 @@ function ReportPhp() {
   const [modalVisible, setModalVisible] = useState(false);
   const [currentPage, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [stateType, setStateType] = useState('');
+  const [identityTyp, setIdentityType] = useState('');
+  const [searchText, setSearchText] = useState('');
+
+  const threeSelMenu = {
+    label: '状态',
+    items: [
+      { key: 'all', label: '全部状态' },
+      { key: 'online', label: '通过' },
+      { key: 'living', label: '未通过' },
+      { key: 'offline', label: '待审核' },
+    ],
+    onChange: setStateType,
+  };
+
+  const identityMenu = {
+    label: '身份',
+    items: [
+      { key: 'all', label: '全部身份' },
+      { key: 'admin', label: '管理员' },
+      { key: 'superAdm', label: '高级管理员' },
+    ],
+    onChange: setIdentityType,
+  };
+
+  const menuItems = [threeSelMenu, identityMenu];
+
+  useEffect(() => {
+    console.log('stateType', stateType, identityTyp, searchText);
+  }, [stateType, identityTyp, searchText]);
 
   const mockArticle: Article = {
     id: '1',
@@ -317,7 +347,7 @@ function ReportPhp() {
     {
       title: '行动',
       key: 'actions',
-      render: (_, record: JobPosition) => (
+      render: (_: any, record: JobPosition) => (
         <Space>
           <Tooltip title="预览">
             <Button
@@ -353,6 +383,13 @@ function ReportPhp() {
 
   return (
     <>
+      {/* 筛选和搜索区域 */}
+      <Filter
+        menuItems={menuItems}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        setSearchText={setSearchText}
+      />
       <Table
         rowSelection={rowSelection}
         columns={columns}

@@ -1,6 +1,5 @@
 import { Card, Typography } from 'antd';
 import { Outlet } from 'react-router-dom';
-import Filter from '../Filter';
 import { Suspense } from 'react';
 
 const { Title } = Typography;
@@ -13,9 +12,6 @@ function Live() {
           直播管理
         </Title>
       </div>
-
-      {/* 筛选和搜索区域 */}
-      <Filter />
       {/* 数据表格 */}
       {/* <DBTable /> */}
       <Suspense fallback={<div>Loading...</div>}>

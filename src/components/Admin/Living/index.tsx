@@ -1,6 +1,7 @@
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pagination, Row, Col } from 'antd';
+import Filter from '../Filter';
 import JobCard from './JobCard';
 
 interface Job {
@@ -15,8 +16,47 @@ interface Job {
   isFavorite: boolean;
 }
 
+// 页数筛选表单
+const pageMenu = [
+  { key: 12, label: 'page 12' },
+  { key: 24, label: 'page 24' },
+  { key: 36, label: 'page 36' },
+];
+
 const Living: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+  const [stateType, setStateType] = useState('');
+  const [identityTyp, setIdentityType] = useState('');
+  const [searchText, setSearchText] = useState('');
+
+  const threeSelMenu = {
+    label: '标签',
+    items: [
+      { key: 'all', label: '大咖教学' },
+      { key: 'online', label: '官方' },
+      { key: 'living', label: '入门教程' },
+      { key: 'offline', label: '求职' },
+    ],
+    onChange: setStateType,
+  };
+
+  const identityMenu = {
+    label: '身份',
+    items: [
+      { key: 'all', label: '全部身份' },
+      { key: 'user', label: '普通用户' },
+      { key: 'admin', label: '管理员' },
+      { key: 'superAdm', label: '高级管理员' },
+    ],
+    onChange: setIdentityType,
+  };
+
+  const menuItems = [threeSelMenu, identityMenu];
+
+  useEffect(() => {
+    console.log('stateType', stateType, identityTyp, searchText);
+  }, [stateType, identityTyp, searchText]);
 
   const jobData: Job[] = [
     {
@@ -111,11 +151,19 @@ const Living: React.FC = () => {
 
   return (
     <div className="bg-[#fff] py-20 px-0">
-      <div className="m-auto p-0">
+      {/* 筛选和搜索区域 */}
+      <Filter
+        pageMenu={pageMenu}
+        menuItems={menuItems}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        setSearchText={setSearchText}
+      />
+      <div className="m-auto pt-20">
         {/* 表格 */}
         <Row gutter={[8, 8]}>
           {jobData.map((job) => (
-            <Col xs={24} sm={24} md={12} lg={8} xl={8} xxl={6} key={job.id}>
+            <Col xs={24} sm={24} md={12} lg={12} xl={8} xxl={6} key={job.id}>
               <JobCard job={job} />
             </Col>
           ))}
