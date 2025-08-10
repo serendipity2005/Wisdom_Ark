@@ -1,5 +1,4 @@
 import { Card, Typography } from 'antd';
-import Filter from '../Filter';
 const { Title } = Typography;
 import { Outlet } from 'react-router-dom';
 import { Suspense } from 'react';
@@ -11,11 +10,7 @@ export default function Audit() {
           工作列表
         </Title>
       </div>
-
-      {/* 筛选和搜索区域 */}
-      <Filter />
       {/* 数据表格 */}
-      {/* <DBTable /> */}
       <Suspense fallback={<div>Loading...</div>}>
         <Outlet />
       </Suspense>

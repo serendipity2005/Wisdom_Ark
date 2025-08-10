@@ -1,11 +1,12 @@
 // 用户管理
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Table, Button, Space, Tag, Switch } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 
 import './index.scss';
 import BanPopup from './BanPopup';
+import Filter from '../Filter';
 
 // 模拟数据类型定义
 interface JobPosition {
@@ -25,8 +26,39 @@ const onChange = (checked: boolean) => {
 function BannedUser() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrent] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
   const [modalVisible, setModalVisible] = useState(false);
+  const [pageSize, setPageSize] = useState(10);
+  const [stateType, setStateType] = useState('');
+  const [identityTyp, setIdentityType] = useState('');
+  const [searchText, setSearchText] = useState('');
+
+  const threeSelMenu = {
+    label: '封禁原因',
+    items: [
+      { key: 'all', label: '全部' },
+      { key: 'online', label: '政治敏感' },
+      { key: 'living', label: '辱华' },
+      { key: 'offline', label: '违法' },
+    ],
+    onChange: setStateType,
+  };
+
+  const identityMenu = {
+    label: '身份',
+    items: [
+      { key: 'all', label: '全部身份' },
+      { key: 'user', label: '普通用户' },
+      { key: 'admin', label: '管理员' },
+      { key: 'superAdm', label: '高级管理员' },
+    ],
+    onChange: setIdentityType,
+  };
+
+  const menuItems = [threeSelMenu, identityMenu];
+
+  useEffect(() => {
+    console.log('stateType', stateType, identityTyp, searchText);
+  }, [stateType, identityTyp, searchText]);
 
   // 模拟职位数据
   const [jobData, setJobData] = useState<JobPosition[]>([
@@ -128,7 +160,7 @@ function BannedUser() {
     {
       title: '行动',
       key: 'actions',
-      render: (_, record: JobPosition) => (
+      render: (_: any, record: JobPosition) => (
         <Space>
           <Button
             type="text"
@@ -158,6 +190,13 @@ function BannedUser() {
 
   return (
     <>
+      {/* 筛选和搜索区域 */}
+      <Filter
+        menuItems={menuItems}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        setSearchText={setSearchText}
+      />
       <Table
         rowSelection={rowSelection}
         columns={columns}

@@ -2,7 +2,6 @@
 
 import { Button, Card, Typography } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
-import Filter from '../Filter';
 const { Title } = Typography;
 import './index.scss'; // 引入样式文件
 import { Outlet } from 'react-router-dom';
@@ -47,10 +46,7 @@ function ContentHead() {
         />
       </div>
 
-      {/* 筛选和搜索区域 */}
-      <Filter />
       {/* 数据表格 */}
-      {/* <DBTable /> */}
       <Suspense fallback={<div>Loading...</div>}>
         <Outlet />
       </Suspense>
