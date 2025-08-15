@@ -149,6 +149,7 @@ function DBTable() {
       rowSelection={rowSelection}
       columns={columns}
       dataSource={jobData}
+      className="mt-20"
       rowKey="id"
       pagination={{
         current: currentPage,

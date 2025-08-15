@@ -21,7 +21,7 @@ function Filter() {
   };
 
   return (
-    <Row className="content-filter mb-16" gutter={16}>
+    <Row className="content-filter mb-0" gutter={16}>
       <Col span={4}>
         <Select
           className="content-select w-full"

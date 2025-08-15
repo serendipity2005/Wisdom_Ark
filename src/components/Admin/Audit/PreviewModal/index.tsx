@@ -9,8 +9,6 @@ import {
   message,
   Card,
   Tag,
-  Timeline,
-  Avatar,
   Divider,
   Space,
   Typography,

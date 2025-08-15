@@ -1,11 +1,11 @@
 // 用户管理
-
 import type React from 'react';
 import { useState } from 'react';
 import { Table, Button, Space, Tag, Switch } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 
 import './index.scss';
+import BanPopup from './BanPopup';
 
 // 模拟数据类型定义
 interface JobPosition {
@@ -26,6 +26,7 @@ function BannedUser() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [modalVisible, setModalVisible] = useState(false);
 
   // 模拟职位数据
   const [jobData, setJobData] = useState<JobPosition[]>([
@@ -129,7 +130,12 @@ function BannedUser() {
       key: 'actions',
       render: (_, record: JobPosition) => (
         <Space>
-          <Button type="text" icon={<EditOutlined />} size="small" />
+          <Button
+            type="text"
+            onClick={() => setModalVisible(true)}
+            icon={<EditOutlined />}
+            size="small"
+          />
           <Switch
             defaultChecked
             checkedChildren="解禁"
@@ -151,26 +157,32 @@ function BannedUser() {
   };
 
   return (
-    <Table
-      rowSelection={rowSelection}
-      columns={columns}
-      dataSource={jobData}
-      rowKey="id"
-      pagination={{
-        current: currentPage,
-        pageSize: pageSize,
-        total: jobData.length,
-        showSizeChanger: true,
-        showQuickJumper: true,
-        showTotal: (total: any, range: any[]) =>
-          `显示 ${range[0]} 个结果 (共 ${total} 个结果)`,
-        onChange: (page: React.SetStateAction<number>, size: any) => {
-          setCurrent(page);
-          setPageSize(size || 10);
-        },
-      }}
-      size="middle"
-    />
+    <>
+      <Table
+        rowSelection={rowSelection}
+        columns={columns}
+        dataSource={jobData}
+        className="mt-25"
+        rowKey="id"
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: jobData.length,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total: any, range: any[]) =>
+            `显示 ${range[0]} 个结果 (共 ${total} 个结果)`,
+          onChange: (page: React.SetStateAction<number>, size: any) => {
+            setCurrent(page);
+            setPageSize(size || 10);
+          },
+        }}
+        size="middle"
+      />
+
+      {/* 弹窗 */}
+      <BanPopup visible={modalVisible} onClose={() => setModalVisible(false)} />
+    </>
   );
 }
 
