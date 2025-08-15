@@ -2,8 +2,6 @@ import './index.scss';
 import { TvMinimalPlay, CalendarDays, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { Button, Card } from 'antd';
-
-const { Meta } = Card;
 interface LiveItem {
   id: number;
   title: string;
@@ -42,7 +40,7 @@ const liveData: LiveItem[] = [
   },
   {
     id: 3,
-    title: '今晚聊Trae: Tare赋能开源，打造高效、优质的开源项目新范式',
+    title: '今晚聊Trae: Tare赋能开源，打造优质的开源项目新范式',
     date: '2025-05-08',
     time: '19:00',
     status: 2,
@@ -108,7 +106,12 @@ const LiveCard = ({ item }: { item: LiveItem }) => {
   return (
     <Card
       hoverable
-      className="overflow-hidden transition-all duration-300 hover:shadow-md"
+      className="overflow-hidden transition-all  hover:shadow-md h-265"
+      styles={{
+        body: {
+          padding: 10,
+        },
+      }}
       cover={
         <div className="relative">
           <img src={item.image} className="w-full object-cover" />
@@ -119,28 +122,18 @@ const LiveCard = ({ item }: { item: LiveItem }) => {
         </div>
       }
     >
-      <Meta
-        title={
-          <div
-            className="live-title font-bold text-gray-800 line-clamp-2 mb-5 text-14.5"
-            title={item.title}
-          >
-            {item.title}
-          </div>
-        }
-        description={
-          <div className="space-y-4">
-            <div className="flex items-center text-gray-600 text-sm">
-              <CalendarDays className="mr-4 w-18 h-18" />
-              <span className="text-13.5">{item.date}</span>
-            </div>
-            <div className="flex items-center text-gray-600 text-sm">
-              <Clock className="mr-4 w-18 h-18" />
-              <span className="text-13.5">{item.time}</span>
-            </div>
-          </div>
-        }
-      />
+      <div className="mb-5 text-14 h-44">{item.title}</div>
+      <div className="mb-5 text-blue">✨{item.speaker}</div>
+      <div className="space-y-4 w-full flex">
+        <div className="flex items-center text-gray-600 text-sm mr-auto">
+          <CalendarDays className="mr-4 w-16 h-16" />
+          <span className="text-13.5">{item.date}</span>
+        </div>
+        <div className="flex items-center text-gray-600 text-sm ml-auto">
+          <Clock className="mr-4 w-16 h-16" />
+          <span className="text-13.5">{item.time}</span>
+        </div>
+      </div>
     </Card>
   );
 };
@@ -156,7 +149,7 @@ export default function VideoType() {
   });
 
   return (
-    <div className="w-700 min-h-700 bg-white mt-20 p-15">
+    <div className="w-750 min-h-750 bg-white mt-20 p-15">
       <div className="font-bold flex items-center mb-15">
         <TvMinimalPlay className="w-18 h-18 mr-5" />
         直播列表
