@@ -28,6 +28,7 @@ import {
 import Cookies from 'js-cookie';
 import { useDispatch } from 'react-redux';
 import { setUserLogin } from '@/store/modules/userSlice';
+import { setRoutes } from '@/store/modules/routeSlice';
 
 interface LoginRegisterModalProps {
   open?: boolean;
@@ -95,7 +96,7 @@ const LoginRegisterModal: React.FC<LoginRegisterModalProps> = ({
         type: 'user',
       });
 
-      console.log(info);
+      await dispatch(setRoutes(res.data.menuItem));
 
       message.success('登录成功！');
       onLogin?.();

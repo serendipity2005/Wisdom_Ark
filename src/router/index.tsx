@@ -3,9 +3,6 @@ import { useAdminRoutes } from './adminRoutes';
 import { frontRoutes } from './frontRoutes';
 import NoFound from '@/pages/[...all]';
 
-import { lazy } from 'react';
-console.log(frontRoutes);
-const Synthesis = lazy(() => import('@/pages/index/synthesis'));
 // 静态路由配置
 export const staticRouter = [...frontRoutes];
 
@@ -14,12 +11,7 @@ export const useAppRouter = () => {
   const adminRoute = useAdminRoutes();
   return [
     ...staticRouter,
-    {
-      ...adminRoute,
-      //   path: '/admin',
-      //   element: <Admin />,
-      //   children: [...adminRoute.children],
-    },
+    ...adminRoute,
     {
       path: '/',
       element: <Navigate to="/synthesis" replace />,
