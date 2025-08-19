@@ -17,7 +17,7 @@ export default function FrontLayout(props: frontLayoutProps) {
   return (
     <Layout
       className="frontLayout"
-      style={{ minHeight: '1200px', background: '#f4f5f5' }}
+      style={{ minHeight: '1400px', background: '#f4f5f5' }}
     >
       {headerNode ? <>{headerNode}</> : <MyHeader></MyHeader>}
 

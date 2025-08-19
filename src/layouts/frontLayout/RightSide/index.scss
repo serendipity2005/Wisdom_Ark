@@ -1,9 +1,13 @@
 .rightSide-container {
+  width: 300px;
+  flex-shrink: 0;
+  position: relative;
   .article-rightSide {
     position: absolute;
     top: 0;
     right: 0;
     z-index: 1;
+    width: 300px;
     .article-rank {
       padding: 12px 8px;
       padding-top: 0;
@@ -30,7 +34,7 @@
     z-index: 5;
   }
   .rightSide-placeholder {
-    height: 1100px;
+    height: 10000px;
     width: 100%;
   }
 }

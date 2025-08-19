@@ -53,7 +53,7 @@ const MySider: React.FC<MySiderProps> = (props: MySiderProps) => {
         <Menu
           mode="inline"
           defaultSelectedKeys={defaultSelectedKeys || ['/following']}
-          defaultOpenKeys={['sub1']}
+          selectedKeys={[location.pathname]}
           style={{ height: '100%' }}
           onClick={handleMenu}
           items={menu || defaultMenu}
