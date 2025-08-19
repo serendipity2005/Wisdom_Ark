@@ -10,22 +10,23 @@ import {
   type MenuProps,
   Input,
   Dropdown,
-  Avatar,
   Space,
   Badge,
-  Divider,
+  message,
   Button,
-  Card,
-  Typography,
 } from 'antd';
-const { Title } = Typography;
-import { useNavigate } from 'react-router-dom';
+
+import { NavLink, useNavigate } from 'react-router-dom';
 
 import { BellFilled, CaretDownFilled } from '@ant-design/icons';
-const { useToken } = theme;
+
 import { useScrollVisibility } from '@/hooks/useScrollVisibility';
-import UserCard from '@/components/UserCard';
+
 import UserDropdown from '@/components/UserDropdown';
+import LoginRegisterModal from '@/components/LoginForm';
+import { useAuth } from '@/contexts/authContext';
+import LoginRequiredButton from '@/components/LoginRequiredButton';
+
 type MenuItem = Required<MenuProps>['items'][number];
 interface MyHeaderProps {
   headMenu?: MenuItem[];
@@ -69,31 +70,22 @@ const items = [
   },
 ];
 
-const userItems: MenuProps['items'] = [
+const messageItems: MenuProps['items'] = [
   {
     key: '1',
     label: (
-      <a
-        target="_blank"
-        rel="noopener noreferrer"
-        href="https://www.antgroup.com"
-      >
-        1st menu item
-      </a>
+      <NavLink target="_blank" rel="noopener noreferrer" to="/notification">
+        评论
+      </NavLink>
     ),
   },
   {
     key: '2',
     label: (
-      <a
-        target="_blank"
-        rel="noopener noreferrer"
-        href="https://www.aliyun.com"
-      >
-        2nd menu item (disabled)
-      </a>
+      <NavLink target="_blank" rel="noopener noreferrer" to="/notification">
+        赞和收藏
+      </NavLink>
     ),
-    disabled: true,
   },
   {
     key: '3',
@@ -103,16 +95,27 @@ const userItems: MenuProps['items'] = [
         rel="noopener noreferrer"
         href="https://www.luohanacademy.com"
       >
-        3rd menu item (disabled)
+        私信
       </a>
     ),
-    disabled: true,
+  },
+  {
+    key: '3',
+    label: (
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        href="https://www.luohanacademy.com"
+      >
+        系统通知
+      </a>
+    ),
   },
 ];
 export default function MyHeader(props?: MyHeaderProps) {
   const { headMenu } = props || {};
   // const { token } = useToken();
-
+  const { requireAuth, isLoggedIn } = useAuth();
   const menuStyle: React.CSSProperties = {
     boxShadow: 'none',
   };
@@ -135,6 +138,14 @@ export default function MyHeader(props?: MyHeaderProps) {
   };
   const navigate = useNavigate();
   const visible = useScrollVisibility();
+  const handleLoginModal = () => {
+    console.log('点了');
+
+    requireAuth(() => {
+      message.success('点赞成功');
+    });
+  };
+
   return (
     <Header
       className={`myHeader ${visible ? '' : 'hide'}`}
@@ -181,16 +192,28 @@ export default function MyHeader(props?: MyHeaderProps) {
                   创作者中心
                 </Dropdown.Button>
 
-                {/* 通知 */}
-                <Badge count={1} size="small">
-                  <BellFilled
-                    style={{
-                      fontSize: '20px',
-                      color: `#8a919f`,
-                    }}
-                  />
-                </Badge>
-                <UserDropdown></UserDropdown>
+                {isLoggedIn ? (
+                  <>
+                    <Dropdown menu={{ items: messageItems }}>
+                      <Badge count={1} size="small" onClick={handleLoginModal}>
+                        <BellFilled
+                          style={{
+                            fontSize: '20px',
+                            color: `#8a919f`,
+                          }}
+                        />
+                      </Badge>
+                    </Dropdown>
+
+                    <UserDropdown></UserDropdown>
+                  </>
+                ) : (
+                  <>
+                    <LoginRequiredButton color="primary" variant="outlined">
+                      登录/注册
+                    </LoginRequiredButton>
+                  </>
+                )}
               </Space>
             </Col>
           </Row>

@@ -7,11 +7,11 @@ interface ImgViewProps extends ReactNodeViewProps {
 }
 // 在tiptap中使用react组件需要NodeViewWrapper包裹
 export const ImgView = (props: ImgViewProps) => {
-  const { src, node, updateAttributes } = props;
-  console.log('接收到了', node.attrs);
+  const { node, updateAttributes } = props;
+  const src = node?.attrs?.src || '';
   return (
     <NodeViewWrapper className="react-component">
-      <Image width={300} src={node.attrs.src} />
+      <Image width={300} src={src} />
     </NodeViewWrapper>
   );
 };

@@ -1,0 +1,49 @@
+.content {
+  .ant-card-body {
+    padding: 0;
+  }
+  .article-container {
+    position: relative;
+    // margin-right: 23.33rem;
+    &-header {
+      span {
+        color: $primary-text-color;
+      }
+    }
+  }
+
+  .article-list {
+    &-item {
+      padding: 8px 16px;
+      &-title {
+        font-size: 18px;
+      }
+    }
+  }
+
+  .article-rightSide {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 1;
+    .article-rank {
+      padding: 12px 8px;
+      padding-top: 0;
+      .ant-card-head {
+        padding: 10px 0;
+      }
+    }
+  }
+  .sticky-rightSide {
+    position: fixed;
+    display: none;
+
+    z-index: -1;
+    top: 20px;
+  }
+  .top {
+    visibility: visible;
+    display: block;
+    z-index: 5;
+  }
+}

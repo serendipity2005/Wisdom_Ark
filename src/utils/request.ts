@@ -264,6 +264,8 @@ interface AuthState {
 }
 // 请求拦截器
 req.interceptors.request.use((config: InternalAxiosRequestConfig) => {
+  console.log(config);
+
   const state = store.getState() as RootState;
   const { token } = state.test as AuthState;
   if (token) {
@@ -276,6 +278,8 @@ req.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // 响应拦截器
 req.interceptors.response.use(
   (response: AxiosResponse) => {
+    console.log(response.data);
+
     const res = response.data;
     const code = res.code || 200;
     if (code != 200) {
@@ -288,6 +292,8 @@ req.interceptors.response.use(
     // 网络错误处理
     if (error.response) {
       const { status, data } = error.response;
+      console.log(status, data);
+
       switch (status) {
         case 401:
           message.error('登录已过期，请重新登录');

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useReducer, useRef, useState } from 'react';
 import {
   Layout,
   Button,
@@ -26,7 +26,10 @@ import {
   StrikethroughOutlined,
   TableOutlined,
 } from '@ant-design/icons';
-
+import {
+  getHierarchicalIndexes,
+  TableOfContents,
+} from '@tiptap/extension-table-of-contents';
 import { EditorContent, useEditor } from '@tiptap/react';
 
 import '@/assets/styles/tiptap.scss';
@@ -35,49 +38,59 @@ const { Header, Sider, Content } = Layout;
 import editor from '@/pages/editor/config/editorConfig';
 import Toolbar from '../../components/ToolBar/index';
 import { BubbleMenu, FloatingMenu } from '@tiptap/react/menus';
-
+import React from 'react';
+import { Toc } from '@/components/Toc';
+import { useSelector } from 'react-redux';
+import CustomLinkBubble from '@/components/LinkBubble';
+const MemorizedToC = React.memo(Toc);
 const TiptapEditor = () => {
+  const items = useSelector((state: any) => state.toc.tocItems);
   const [collapsed, setCollapsed] = useState(false);
-  // 模拟目录数据
-  const treeData = [
-    {
-      title: '文档1',
-      key: '0-0',
-      icon: <FileOutlined />,
-      children: [
-        {
-          title: '子文档1-1',
-          key: '0-0-0',
-          icon: <FileOutlined />,
-        },
-        {
-          title: '子文档1-2',
-          key: '0-0-1',
-          icon: <FileOutlined />,
-        },
-      ],
-    },
-    {
-      title: '文档2',
-      key: '0-1',
-      icon: <FileOutlined />,
-    },
-    {
-      title: '文件夹1',
-      key: '0-2',
-      icon: <FolderOutlined />,
-      children: [
-        {
-          title: '文档3',
-          key: '0-2-0',
-          icon: <FileOutlined />,
-        },
-      ],
-    },
-  ];
+  const [isLinkBubbleVisible, setIsLinkBubbleVisible] = useState(false);
+  const editorContainerRef = useRef<HTMLDivElement>(null);
+  // 工具栏"插入链接"按钮的回调
+  const handleInsertLink = () => {
+    if (!editor) return;
 
+    const { from, to } = editor.state.selection;
+    // if (from !== to) {
+    // 有选中内容时才显示气泡框
+    if (from == to) {
+      const linkText = '链接';
+      editor
+        .chain()
+        .focus()
+        .insertContent('链接')
+        .setTextSelection({ from, to: from + linkText.length })
+        .run();
+    }
+    setIsLinkBubbleVisible(true);
+    // }
+  };
+  // 提交链接（传给气泡框的回调）
+  const handleLinkSubmit = (text: string, url: string) => {
+    if (!editor) return;
+
+    const { from, to } = editor.state.selection;
+
+    const linkText = from !== to ? text : text || '链接';
+
+    // 执行插入链接操作
+    editor
+      .chain()
+      .focus()
+      .deleteRange({ from, to }) // 删除选中的文本
+      .insertContentAt(from, {
+        type: 'text',
+        text: linkText,
+        marks: [{ type: 'link', attrs: { href: url } }],
+      })
+      .run();
+
+    setIsLinkBubbleVisible(false);
+  };
   return (
-    <Layout style={{ height: '100vh' }}>
+    <Layout className="editor-container" style={{ height: '100vh' }}>
       {/* Header - 包含导航栏和工具栏 */}
       <Header
         style={{
@@ -129,7 +142,7 @@ const TiptapEditor = () => {
         </div>
 
         {/* 工具栏 */}
-        <Toolbar></Toolbar>
+        <Toolbar handleInsertLink={handleInsertLink}></Toolbar>
       </Header>
 
       <Layout>
@@ -140,14 +153,13 @@ const TiptapEditor = () => {
           collapsed={collapsed}
           collapsedWidth={0}
         >
-          <div style={{ padding: '16px 0' }}>
-            <Tree
-              showIcon
-              defaultExpandedKeys={['0-0']}
-              defaultSelectedKeys={['0-0-0']}
-              treeData={treeData}
-              style={{ padding: '0 16px' }}
-            />
+          <div style={{ padding: '16px' }}>
+            <div className="sidebar-options">
+              <h4 className="label-large">目录</h4>
+              <div className="table-of-contents">
+                <MemorizedToC editor={editor} items={items} />
+              </div>
+            </div>
           </div>
         </Sider>
 
@@ -159,13 +171,16 @@ const TiptapEditor = () => {
               background: '#fff',
               display: 'flex',
               justifyContent: 'center',
+              overflowY: 'auto',
             }}
           >
             <div
+              ref={editorContainerRef}
               style={{
                 width: '100%',
                 maxWidth: '800px',
                 padding: '10px 24px',
+                position: 'relative',
               }}
             >
               {/* 这里是编辑器内容区域 */}
@@ -230,6 +245,13 @@ const TiptapEditor = () => {
               )} */}
 
               <EditorContent className="tiptap" editor={editor}></EditorContent>
+              {/* 添加链接气泡框 */}
+              <CustomLinkBubble
+                onSubmit={handleLinkSubmit}
+                editor={editor}
+                isVisible={isLinkBubbleVisible}
+                onClose={() => setIsLinkBubbleVisible(false)}
+              />
             </div>
           </Content>
         </Layout>
