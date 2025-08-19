@@ -7,23 +7,34 @@ import { Outlet } from 'react-router-dom';
 type MenuItem = Required<MenuProps>['items'][number];
 const headMenu: MenuItem[] = [
   {
-    key: '/',
+    key: '/synthesis',
     label: '推荐',
   },
   {
-    key: '/pins',
+    key: '/synthesis/following',
     label: '关注',
   },
 ];
 interface MiddleContentProps {
   children?: React.ReactNode;
+  className?: string;
+  menu?: boolean | MenuItem[];
+  style?: React.CSSProperties;
 }
 // 模拟文章数据
 
 // 中间内容
-export default function MiddleContent() {
+export default function MiddleContent({
+  children,
+  className,
+  menu = true,
+  style,
+}: MiddleContentProps) {
   return (
-    <Col className="article-container" span={16}>
+    <Col
+      className={`article-container ` + className}
+      style={{ flexGrow: '1', ...style }}
+    >
       <Card
         size="small"
         variant="borderless"
@@ -32,18 +43,23 @@ export default function MiddleContent() {
           borderRadius: '8px',
         }}
       >
-        {/* 顶部标签切换 */}
-        <div
-          className="article-container-header"
-          style={{
-            borderBottom: '1px solid #f0f0f0',
-          }}
-        >
-          <Menu mode="horizontal" items={headMenu} />
-        </div>
-
-        {/* 文章列表 */}
-        <Outlet></Outlet>
+        {menu ? (
+          <div
+            className="article-container-header"
+            style={{
+              borderBottom: '1px solid #f0f0f0',
+            }}
+          >
+            <Menu
+              mode="horizontal"
+              items={headMenu}
+              selectedKeys={[location.pathname]}
+            />
+          </div>
+        ) : (
+          <></>
+        )}
+        {children}
       </Card>
     </Col>
   );

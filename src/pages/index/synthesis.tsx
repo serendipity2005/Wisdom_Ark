@@ -1,7 +1,8 @@
 import UserPopover from '@/components/UserPopover';
 import { EyeOutlined, LikeOutlined } from '@ant-design/icons';
 import { List, Row, Col, Space, Tag, Typography } from 'antd';
-import '@/layouts/frontLayout/Content/index.scss';
+import '@/layouts/frontLayout/MyContent/index.scss';
+import MiddleContent from '@/layouts/frontLayout/MiddleContent';
 const { Text, Title } = Typography;
 const mockArticles = [
   {
@@ -85,11 +86,12 @@ const mockArticles = [
 ];
 export default function Test() {
   return (
+    // <MiddleContent>
     <List
       dataSource={mockArticles}
       renderItem={(article) => (
         <List.Item className="article-list-item">
-          <div style={{ width: '100%' }}>
+          <div style={{ flex: '1 1 auto' }}>
             <Title
               className="article-list-item-title"
               style={{
@@ -148,8 +150,22 @@ export default function Test() {
               </Col>
             </Row>
           </div>
+          <div
+            style={{
+              width: '140px',
+              height: '100px',
+              flexShrink: '0',
+            }}
+          >
+            <img
+              style={{ height: '100%', width: '100%' }}
+              src="https://picsum.photos/200/300"
+              alt=""
+            />
+          </div>
         </List.Item>
       )}
     />
+    // </MiddleContent>
   );
 }

@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router-dom';
 import { useAdminRoutes } from './adminRoutes';
 import { frontRoutes } from './frontRoutes';
 import NoFound from '@/pages/[...all]';
@@ -18,6 +19,10 @@ export const useAppRouter = () => {
       //   path: '/admin',
       //   element: <Admin />,
       //   children: [...adminRoute.children],
+    },
+    {
+      path: '/',
+      element: <Navigate to="/synthesis" replace />,
     },
     { path: '*', element: <NoFound /> },
   ];
