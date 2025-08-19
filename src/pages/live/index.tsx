@@ -6,6 +6,7 @@ import { allVideoData } from '@/components/Live/VideoItem/videoData';
 import VideoFocus from '@/components/Live/VideoFocus';
 import VideoList from '@/components/Live/VideoList';
 import VideoType from '@/components/Live/VideoType';
+import CreateLive from '@/components/Live/CreateLive';
 
 export default function Live() {
   // 初始化
@@ -43,7 +44,10 @@ export default function Live() {
           <VideoFocus></VideoFocus>
           <VideoType></VideoType>
         </div>
-        <VideoList></VideoList>
+        <div className="">
+          <VideoList></VideoList>
+          <CreateLive></CreateLive>
+        </div>
       </div>
     </>
   );

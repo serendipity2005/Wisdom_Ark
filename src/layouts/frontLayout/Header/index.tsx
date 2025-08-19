@@ -1,4 +1,5 @@
 // 接收1.headerMenu,
+import type React from 'react';
 import './index.scss';
 import {
   Layout,
@@ -12,12 +13,19 @@ import {
   Avatar,
   Space,
   Badge,
+  Divider,
+  Button,
+  Card,
+  Typography,
 } from 'antd';
+const { Title } = Typography;
 import { useNavigate } from 'react-router-dom';
+
 import { BellFilled, CaretDownFilled } from '@ant-design/icons';
-
+const { useToken } = theme;
 import { useScrollVisibility } from '@/hooks/useScrollVisibility';
-
+import UserCard from '@/components/UserCard';
+import UserDropdown from '@/components/UserDropdown';
 type MenuItem = Required<MenuProps>['items'][number];
 interface MyHeaderProps {
   headMenu?: MenuItem[];
@@ -61,12 +69,67 @@ const items = [
   },
 ];
 
+const userItems: MenuProps['items'] = [
+  {
+    key: '1',
+    label: (
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        href="https://www.antgroup.com"
+      >
+        1st menu item
+      </a>
+    ),
+  },
+  {
+    key: '2',
+    label: (
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        href="https://www.aliyun.com"
+      >
+        2nd menu item (disabled)
+      </a>
+    ),
+    disabled: true,
+  },
+  {
+    key: '3',
+    label: (
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        href="https://www.luohanacademy.com"
+      >
+        3rd menu item (disabled)
+      </a>
+    ),
+    disabled: true,
+  },
+];
 export default function MyHeader(props?: MyHeaderProps) {
   const { headMenu } = props || {};
+  // const { token } = useToken();
+
+  const menuStyle: React.CSSProperties = {
+    boxShadow: 'none',
+  };
 
   const {
-    token: { colorBgContainer },
+    token: {
+      colorBgContainer,
+      colorBgElevated,
+      borderRadiusLG,
+      boxShadowSecondary,
+    },
   } = theme.useToken();
+  // const contentStyle: React.CSSProperties = {
+  // backgroundColor: token.colorBgElevated,
+  // borderRadius: token.borderRadiusLG,
+  // boxShadow: token.boxShadowSecondary,
+  // };
   const handleMenu: MenuProps['onClick'] = (e) => {
     navigate(e.key);
   };
@@ -127,14 +190,7 @@ export default function MyHeader(props?: MyHeaderProps) {
                     }}
                   />
                 </Badge>
-
-                {/* 头像 */}
-                <Dropdown>
-                  <Avatar
-                    src="https://avatars.githubusercontent.com/u/1?v=4"
-                    style={{ cursor: 'pointer' }}
-                  />
-                </Dropdown>
+                <UserDropdown></UserDropdown>
               </Space>
             </Col>
           </Row>

@@ -52,7 +52,7 @@ export default function VideoFocus() {
   const displayedLiveData = isExpanded ? liveData : liveData.slice(0, 3);
 
   return (
-    <div className="w-700 bg-white mr-20 p-15">
+    <div className="w-750 bg-white mr-20 p-15">
       <div className="flex items-center justify-between">
         <div className="font-bold flex items-center">
           <Telescope className="w-19 h-19 mr-5" />
