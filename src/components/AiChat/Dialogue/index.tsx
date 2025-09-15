@@ -9,17 +9,19 @@ const { Content } = Layout;
 
 interface Message {
   id: string;
-  type: 'user' | 'assistant';
+  role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
 }
 
 interface DialogueProps {
   chatHistory: Message[];
+  msgLoading: boolean;
 }
 
 const ChatConversationPage: React.FC<DialogueProps> = ({
   chatHistory: messages,
+  msgLoading,
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -53,7 +55,7 @@ const ChatConversationPage: React.FC<DialogueProps> = ({
   }, []);
 
   const MessageBubble: React.FC<{ message: Message }> = ({ message }) => {
-    const isUser = message.type === 'user';
+    const isUser = message.role === 'user';
 
     return (
       <div
@@ -106,6 +108,30 @@ const ChatConversationPage: React.FC<DialogueProps> = ({
               <MessageBubble key={message.id} message={message} />
             ))}
             <div ref={messagesEndRef} />
+            {msgLoading && (
+              <div
+                className="message-box"
+                style={{
+                  justifyContent: 'flex-start',
+                }}
+              >
+                <div className="message-bubble">
+                  <div
+                    className="message-text loading-dots"
+                    style={{
+                      background: '#fff',
+                      color: '#333',
+                      borderRadius: '',
+                      padding: '10px 0',
+                    }}
+                  >
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                    <span className="dot"></span>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 回到底部按钮 */}

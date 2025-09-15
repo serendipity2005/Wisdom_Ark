@@ -49,3 +49,63 @@
     }
   }
 }
+
+// 加载中
+.loading-dots {
+  display: flex;
+  /* 横向排列点 */
+  gap: 8px;
+  /* 点之间的间距 */
+  // justify-content: center;
+  /* 水平居中（可选） */
+  align-items: center;
+  /* 垂直居中 */
+  height: 40px;
+  /* 容器高度（控制垂直位置） */
+}
+
+/* 单个点：圆形样式 */
+.loading-dots .dot {
+  width: 5px;
+  /* 点的宽度 */
+  height: 5px;
+  /* 点的高度（与宽度一致则为圆形） */
+  border-radius: 50%;
+  /* 圆形化 */
+  background-color: #409eff;
+  /* 点的颜色（可换为品牌色） */
+  opacity: 0;
+  /* 初始透明 */
+  /* 绑定动画：缩放+透明度，1.5秒循环，缓动效果更自然 */
+  animation: dotScale 1.5s infinite ease-in-out;
+}
+
+/* 延迟动画，形成顺序 */
+.loading-dots .dot:nth-child(2) {
+  animation-delay: 0.3s;
+}
+
+.loading-dots .dot:nth-child(3) {
+  animation-delay: 0.6s;
+}
+
+/* 关键帧：缩放+透明度同步变化 */
+@keyframes dotScale {
+  0% {
+    opacity: 0;
+    transform: scale(0.5);
+    /* 初始：小且透明 */
+  }
+
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+    /* 中间：大且不透明 */
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(0.5);
+    /* 结束：回到小且透明 */
+  }
+}

@@ -120,7 +120,6 @@ function InputArea({
 
   const handleGainMessage = () => {
     if (inputValue.trim()) {
-      console.log('发送消息:', inputValue);
       handleSendMessage(inputValue);
       setInputValue('');
     }
