@@ -224,15 +224,6 @@ export default function AiContent({ timePeriod, userName }: AiContentProps) {
       setMsgLoading(false);
       console.error('Chat error:', error);
     }
-
-    // const newAiMessage: Message = {
-    //   id: (Date.now() + 1).toString(),
-    //   role: 'assistant',
-    //   content: aiResponse,
-    //   timestamp: new Date(),
-    // };
-
-    // setChatHistory((prev) => [...prev, newAiMessage]);
   };
 
   return (
