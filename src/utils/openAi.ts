@@ -30,7 +30,12 @@ const tools = Array.from(toolsMap.values()).map(({ fun, ...item }) => {
 });
 
 // 对话函数
-export const chatWithGPT = async (messages: any) => {
+export const chatWithGPT = async (
+  messages: any,
+  onChunk?: (chunk: string) => void, // 回调函数，用于处理每个数据块
+  onComplete?: (fullResponse: string) => void, // 完成时的回调
+  onError?: (error: any) => void, // 错误处理回调
+) => {
   const externalContent =
     '智汇云舟（Wisdom Ark）是一个便于用户查询、学习、使用的前端知识库';
   const recentMessages = messages.slice(-5);
@@ -54,39 +59,75 @@ export const chatWithGPT = async (messages: any) => {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: newMessages, // 消息格式: [{role: "user", content: "你好"}]
-      //   stream: true, // 启用流式响应
+      stream: true, // 启用流式响应
       temperature: 0.7,
       tools: tools as any,
     });
-    // console.log(response);
-    // let fullContent = '';
-    // for await (const chunk of response) {
-    //   const content = chunk.choices[0]?.delta?.content || '';
-    //   console.log(content);
-    //   fullContent += content;
-    // }
-    const reply = response.choices[0].message.content;
-    const toolsCall = response.choices[0].message.tool_calls;
-    if (reply) return response.choices[0].message.content;
-    else if (toolsCall) {
+
+    let fullResponse = '';
+    const toolCalls: any[] = [];
+
+    // 处理流式数据
+    for await (const chunk of response) {
+      const delta = chunk.choices[0]?.delta;
+
+      if (delta?.content) {
+        // 普通文本内容
+        const content = delta.content;
+        fullResponse += content;
+        // 实时回调，用于UI更新
+        onChunk?.(content);
+      }
+
+      if (delta?.tool_calls) {
+        // 处理工具调用（流式模式下工具调用可能分多个chunk）
+        delta.tool_calls.forEach((toolCall: any, index: number) => {
+          if (!toolCalls[index]) {
+            toolCalls[index] = {
+              id: toolCall.id,
+              type: toolCall.type,
+              function: { name: '', arguments: '' },
+            };
+          }
+
+          if (toolCall.function?.name) {
+            toolCalls[index].function.name += toolCall.function.name;
+          }
+
+          if (toolCall.function?.arguments) {
+            toolCalls[index].function.arguments += toolCall.function.arguments;
+          }
+        });
+      }
+
+      // 检查是否完成
+      if (
+        chunk.choices[0]?.finish_reason === 'stop' ||
+        chunk.choices[0]?.finish_reason === 'tool_calls'
+      ) {
+        break;
+      }
+    }
+
+    // 如果有工具调用，处理工具调用
+    if (toolCalls.length > 0) {
       const toolResponses = await Promise.all(
-        toolsCall.map(async (toolCall) => {
+        toolCalls.map(async (toolCall) => {
           const toolId = toolCall.id;
-          if (!toolId)
+          if (!toolId) {
             return {
               role: 'tool',
               content: '未找到对应工具',
               tool_call_id: toolId,
             };
+          }
 
           const functionName = toolCall.function.name;
           const tool = toolsMap.get(functionName);
 
           if (tool) {
             try {
-              // 解析参数
               const args = JSON.parse(toolCall.function.arguments);
-              // 执行工具函数
               const result = await tool.fun(args);
 
               return {
@@ -112,23 +153,64 @@ export const chatWithGPT = async (messages: any) => {
           }
         }),
       );
-      return JSON.parse(toolResponses[0].content).content;
 
-      //   // 将工具响应加入消息历史并再次请求模型生成回复
-      //   const updatedMessages = [
-      //     ...newMessages,
-      //     response.choices[0].message,
-      //     ...toolResponses,
-      //   ];
-
-      //   const finalResponse = await openai.chat.completions.create({
-      //     model: 'gpt-4o-mini',
-      //     messages: updatedMessages,
-      //     temperature: 0.7,
-      //   });
-
-      //   return finalResponse.choices[0].message.content || '无法生成回复';
+      const toolResult = JSON.parse(toolResponses[0].content).content;
+      onComplete?.(toolResult);
+      return toolResult;
     }
+
+    onComplete?.(fullResponse);
+    return fullResponse;
+
+    // const reply = response.choices[0].message.content;
+    // const toolsCall = response.choices[0].message.tool_calls;
+    // if (reply) return response.choices[0].message.content;
+    // else if (toolsCall) {
+    //   const toolResponses = await Promise.all(
+    //     toolsCall.map(async (toolCall) => {
+    //       const toolId = toolCall.id;
+    //       if (!toolId)
+    //         return {
+    //           role: 'tool',
+    //           content: '未找到对应工具',
+    //           tool_call_id: toolId,
+    //         };
+
+    //       const functionName = toolCall.function.name;
+    //       const tool = toolsMap.get(functionName);
+
+    //       if (tool) {
+    //         try {
+    //           // 解析参数
+    //           const args = JSON.parse(toolCall.function.arguments);
+    //           // 执行工具函数
+    //           const result = await tool.fun(args);
+
+    //           return {
+    //             role: 'tool',
+    //             content:
+    //               typeof result === 'string' ? result : JSON.stringify(result),
+    //             tool_call_id: toolId,
+    //           };
+    //         } catch (error) {
+    //           console.error('工具执行失败:', error);
+    //           return {
+    //             role: 'tool',
+    //             content: '工具执行失败',
+    //             tool_call_id: toolId,
+    //           };
+    //         }
+    //       } else {
+    //         return {
+    //           role: 'tool',
+    //           content: '未找到对应工具',
+    //           tool_call_id: toolId,
+    //         };
+    //       }
+    //     }),
+    //   );
+    //   return JSON.parse(toolResponses[0].content).content;
+    // }
   } catch (error) {
     console.error('OpenAI API Error:', error);
     return '发生错误，请重试';
