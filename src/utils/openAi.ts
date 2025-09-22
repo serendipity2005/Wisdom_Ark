@@ -9,10 +9,6 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true, // 明确允许浏览器环境（仅限开发）
 });
 
-// const tools = Array.from(toolsMap.values()).map(({ fun, ...item }) => ({
-//   ...item,
-//   parameters: zodToJsonSchema(item.function.parameters),
-// }));
 const tools = Array.from(toolsMap.values()).map(({ fun, ...item }) => {
   const jsonSchema = zodToJsonSchema(item.function.parameters);
   return {
@@ -51,14 +47,13 @@ export const chatWithGPT = async (
         - 关于代码问题，你能够按照"设计思路"、"代码实现"两个维度来回答
         - 跟编程无关的问题你可以拒绝回答
         `,
-      //   tools: tools,
     },
     ...recentMessages,
   ];
   try {
     const response = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
-      messages: newMessages, // 消息格式: [{role: "user", content: "你好"}]
+      messages: newMessages,
       stream: true, // 启用流式响应
       temperature: 0.7,
       tools: tools as any,
@@ -161,56 +156,6 @@ export const chatWithGPT = async (
 
     onComplete?.(fullResponse);
     return fullResponse;
-
-    // const reply = response.choices[0].message.content;
-    // const toolsCall = response.choices[0].message.tool_calls;
-    // if (reply) return response.choices[0].message.content;
-    // else if (toolsCall) {
-    //   const toolResponses = await Promise.all(
-    //     toolsCall.map(async (toolCall) => {
-    //       const toolId = toolCall.id;
-    //       if (!toolId)
-    //         return {
-    //           role: 'tool',
-    //           content: '未找到对应工具',
-    //           tool_call_id: toolId,
-    //         };
-
-    //       const functionName = toolCall.function.name;
-    //       const tool = toolsMap.get(functionName);
-
-    //       if (tool) {
-    //         try {
-    //           // 解析参数
-    //           const args = JSON.parse(toolCall.function.arguments);
-    //           // 执行工具函数
-    //           const result = await tool.fun(args);
-
-    //           return {
-    //             role: 'tool',
-    //             content:
-    //               typeof result === 'string' ? result : JSON.stringify(result),
-    //             tool_call_id: toolId,
-    //           };
-    //         } catch (error) {
-    //           console.error('工具执行失败:', error);
-    //           return {
-    //             role: 'tool',
-    //             content: '工具执行失败',
-    //             tool_call_id: toolId,
-    //           };
-    //         }
-    //       } else {
-    //         return {
-    //           role: 'tool',
-    //           content: '未找到对应工具',
-    //           tool_call_id: toolId,
-    //         };
-    //       }
-    //     }),
-    //   );
-    //   return JSON.parse(toolResponses[0].content).content;
-    // }
   } catch (error) {
     console.error('OpenAI API Error:', error);
     return '发生错误，请重试';
