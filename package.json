@@ -51,12 +51,13 @@
     "antd-style": "^3.7.1",
     "axios": "^1.11.0",
     "echarts": "^6.0.0",
+    "highlight.js": "^11.11.1",
     "js-cookie": "^3.0.5",
     "katex": "^0.16.22",
     "lottie-web": "^5.13.0",
     "lowlight": "^3.3.0",
     "lucide-react": "^0.525.0",
-    "marked": "^16.1.1",
+    "marked": "^16.3.0",
     "mockjs": "^1.1.0",
     "openai": "^5.20.2",
     "react": "^18.3.1",
@@ -68,7 +69,9 @@
     "redux-persist": "^6.0.0",
     "styled-components": "^6.1.19",
     "turndown": "^7.2.0",
-    "vite-plugin-pages": "^0.33.1"
+    "vite-plugin-pages": "^0.33.1",
+    "zod": "^3.25.76",
+    "zod-to-json-schema": "^3.24.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.30.1",
