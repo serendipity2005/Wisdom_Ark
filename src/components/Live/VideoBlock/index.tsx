@@ -2,17 +2,19 @@ import { useState } from 'react';
 import { Eye, FileImage, Share2 } from 'lucide-react';
 import { Button, Image, Input, QRCode, Popover, Space, message } from 'antd';
 import { CopyOutlined } from '@ant-design/icons';
+import videoUrl from '../../../assets/video/play.mp4';
+import VideoPlayer from '../VideoPlayer';
 
 // 模拟直播数据
 const liveData = {
   title: 'AI大模型实战：从入门到部署全流程讲解',
   views: '12,345', // 观看量
-  videoUrl: 'https://example.com/live-stream.mp4', // 视频播放地址（模拟）
+  videoUrl: videoUrl, // 视频播放地址（模拟）
   coverUrl: 'https://picsum.photos/id/237/1280/720', // 直播封面图（模拟）
   liveUrl: 'https://example.com/live/ai-model-workshop', // 直播分享链接
 };
 
-export default function VideoShow() {
+export default function VideoBlock() {
   const [preview, setPreview] = useState(false);
 
   // 复制文本到剪贴板
@@ -70,12 +72,13 @@ export default function VideoShow() {
           </div>
         </div>
         {/* 视频播放区域 */}
-        <div className="video w-full h-590 bg-white">
-          <video className="w-full h-full object-contain" controls>
-            <source src={liveData.videoUrl} type="video/mp4" />
-            您的浏览器不支持视频播放
-          </video>
+        <div className="video w-full h-590 bg-white ">
+          <VideoPlayer
+            videoUrl={liveData.videoUrl}
+            thumbnailUrl={liveData.coverUrl}
+          />
         </div>
+
         {/* 图片预览组件 */}
         <Image
           style={{ display: 'none' }}

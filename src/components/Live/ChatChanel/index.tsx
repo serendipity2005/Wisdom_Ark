@@ -8,7 +8,7 @@ interface ChatChanelProps {
 // 模拟聊天消息类型
 interface ChatMessage {
   sender: string;
-  senderId: number; // 1:主持人 0:普通用户
+  senderId: number;
   content: string;
 }
 
