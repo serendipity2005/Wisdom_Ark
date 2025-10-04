@@ -80,6 +80,25 @@
   animation: dotScale 1.5s infinite ease-in-out;
 }
 
+// AI回答加载时闪光条
+.cursor {
+  animation: blink 0.5s infinite;
+  color: #007bff;
+  font-weight: bold;
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
 /* 延迟动画，形成顺序 */
 .loading-dots .dot:nth-child(2) {
   animation-delay: 0.3s;

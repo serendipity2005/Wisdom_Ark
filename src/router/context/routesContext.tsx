@@ -1,9 +1,7 @@
 // src/router/context/routesContext.tsx
 import { useEffect, useState } from 'react';
-// import { getMenu } from '@/api/test';
-import { transformRoutes } from '@/utils/routeUtils';
-import { generateMenus } from '@/utils/routeUtils';
-import { RoutesContext } from './useRoutesContext'; // 引入拆分出去的 Context
+import { transformRoutes, generateMenus } from '@/utils/routeUtils';
+import { RoutesContext } from './useRoutesContext';
 import type { MenuItem } from '@/types/routes';
 import { useSelector } from 'react-redux';
 import type { RouteState } from '@/store/modules/routeSlice';
@@ -14,14 +12,13 @@ export const RoutesProvider: React.FC<{ children: React.ReactNode }> = ({
   const [dynamicRoutes, setDynamicRoutes] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [menus, setMenus] = useState<MenuItem[]>([]);
+  // 从redux中获取路由数据
   const routes = useSelector((state: RouteState) => state.route.routes);
-  console.log(routes);
 
+  // 数据处理与转换
   const fetchRoutes = async () => {
     try {
       setLoading(true);
-      //   const { data } = await getMenu();
-      //   console.log(data);
       setDynamicRoutes(transformRoutes(routes));
       setMenus(generateMenus(routes));
     } catch (error) {
@@ -35,6 +32,7 @@ export const RoutesProvider: React.FC<{ children: React.ReactNode }> = ({
     fetchRoutes();
   }, []);
 
+  // 向RoutesContext提供路由数据
   return (
     <RoutesContext.Provider
       value={{ dynamicRoutes, menus, loading, refreshRoutes: fetchRoutes }}

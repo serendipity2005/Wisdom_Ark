@@ -41,7 +41,6 @@ function InputArea({
   msgLoading,
 }: InputAreaProps) {
   const [inputValue, setInputValue] = useState('');
-  const [transcript, setTranscript] = useState('');
   const [isListening, setIsListening] = useState(false);
   const [status, setStatus] = useState('准备就绪');
   const recognitionRef = useRef<any>(null);
@@ -72,7 +71,7 @@ function InputArea({
 
     recognition.onresult = (event: any) => {
       const transcript = event.results[0][0].transcript;
-      setTranscript(transcript);
+      setInputValue(inputValue + transcript);
       setStatus(`识别结果: ${transcript}`);
     };
 
@@ -150,7 +149,7 @@ function InputArea({
             e.preventDefault();
             handleGainMessage();
           }}
-          value={inputValue || transcript}
+          value={inputValue}
         />
 
         <div className="input-actions">
