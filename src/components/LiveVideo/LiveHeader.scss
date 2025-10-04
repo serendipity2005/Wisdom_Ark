@@ -1,0 +1,12 @@
+* {
+  margin: 0;
+  padding: 0;
+}
+*:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+.title-block {
+  box-sizing: border-box;
+  padding: 6px 10px;
+}

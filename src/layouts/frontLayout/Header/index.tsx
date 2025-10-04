@@ -57,6 +57,10 @@ const defaultHeadMenu: MenuItem[] = [
     key: '/ai',
     label: 'AI',
   },
+  {
+    key: '/livevideo',
+    label: '直播测试Hbr',
+  },
 ];
 // 创作者中心菜单
 const items = [
