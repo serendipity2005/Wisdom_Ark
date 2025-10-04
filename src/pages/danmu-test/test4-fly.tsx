@@ -13,11 +13,11 @@ import { SendOutlined } from '@ant-design/icons';
 
 const { Option } = Select;
 const { Title } = Typography;
-import store, { type RootState } from '@/store';
+
 import { useDispatch, useSelector } from 'react-redux';
 import type { DanmakuItem, DanmakuState } from '@/store/modules/danmakuSlice';
 import { add } from '@tensorflow/tfjs';
-
+import videoSrc from '@/assets/video/play.mp4';
 const colors = [
   '#ffffff',
   '#ff6b6b',
@@ -316,24 +316,22 @@ export default function Test1() {
           style={{
             position: 'relative',
             width: '100%',
-            height: '400px',
+            height: '600px',
             background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
             borderRadius: '8px',
             overflow: 'hidden',
           }}
         >
-          <canvas
-            ref={canvasRef}
-            style={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              width: '100%',
-              height: '100%',
-              pointerEvents: 'none',
-              zIndex: 2,
-            }}
-          />
+          <div id="container" style={{ width: '100%', height: '100%' }}>
+            <video
+              id="video"
+              controls
+              autoPlay
+              src={videoSrc}
+              style={{ width: '100%', height: '100%', objectFit: 'contain' }}
+            ></video>
+          </div>
+
           <div
             style={{
               position: 'absolute',
@@ -346,7 +344,7 @@ export default function Test1() {
               zIndex: 1,
             }}
           >
-            视频播放区域 - 弹幕演示
+            {/* <video src={videoSrc}></video> */}
           </div>
         </div>
       </Card>
@@ -431,111 +429,6 @@ export default function Test1() {
           </Space>
         </Card>
       </div>
-
-      {/* 渲染性能监控面板 */}
-      <Card title="渲染性能监控" style={{ marginTop: '20px' }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(4, 1fr)',
-            gap: '16px',
-            textAlign: 'center',
-          }}
-        >
-          <div>
-            <div style={{ fontSize: '24px', color: '#1890ff' }}>
-              {renderStats.fps}
-            </div>
-            <div>渲染帧率 (FPS)</div>
-            <div
-              style={{
-                fontSize: '12px',
-                color:
-                  renderStats.fps >= 50
-                    ? '#52c41a'
-                    : renderStats.fps >= 30
-                      ? '#faad14'
-                      : '#ff4d4f',
-              }}
-            >
-              {renderStats.fps >= 50
-                ? '优秀'
-                : renderStats.fps >= 30
-                  ? '良好'
-                  : '较差'}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '24px', color: '#52c41a' }}>
-              {renderStats.avgDrawTime}ms
-            </div>
-            <div>平均绘制时间</div>
-            <div
-              style={{
-                fontSize: '12px',
-                color:
-                  parseFloat(renderStats.avgDrawTime) <= 5
-                    ? '#52c41a'
-                    : parseFloat(renderStats.avgDrawTime) <= 10
-                      ? '#faad14'
-                      : '#ff4d4f',
-              }}
-            >
-              {parseFloat(renderStats.avgDrawTime) <= 5
-                ? '优秀'
-                : parseFloat(renderStats.avgDrawTime) <= 10
-                  ? '良好'
-                  : '需优化'}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '24px', color: '#722ed1' }}>
-              {renderStats.maxDrawTime}ms
-            </div>
-            <div>最大绘制时间</div>
-            <div
-              style={{
-                fontSize: '12px',
-                color:
-                  parseFloat(renderStats.maxDrawTime) <= 10
-                    ? '#52c41a'
-                    : parseFloat(renderStats.maxDrawTime) <= 20
-                      ? '#faad14'
-                      : '#ff4d4f',
-              }}
-            >
-              {parseFloat(renderStats.maxDrawTime) <= 10
-                ? '优秀'
-                : parseFloat(renderStats.maxDrawTime) <= 20
-                  ? '良好'
-                  : '需优化'}
-            </div>
-          </div>
-          <div>
-            <div style={{ fontSize: '24px', color: '#eb2f96' }}>
-              {renderStats.danmakuCount}
-            </div>
-            <div>当前弹幕数</div>
-            <div
-              style={{
-                fontSize: '12px',
-                color:
-                  renderStats.danmakuCount <= 1000
-                    ? '#52c41a'
-                    : renderStats.danmakuCount <= 3000
-                      ? '#faad14'
-                      : '#ff4d4f',
-              }}
-            >
-              {renderStats.danmakuCount <= 1000
-                ? '较低'
-                : renderStats.danmakuCount <= 3000
-                  ? '中等'
-                  : '较高'}
-            </div>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }
