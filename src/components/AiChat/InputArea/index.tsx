@@ -20,6 +20,7 @@ interface InputAreaProps {
   aiType: React.ReactNode;
   setAiType: (aiType: any) => void;
   handleSendMessage: (message: string) => void;
+  msgLoading: boolean;
 }
 
 const { TextArea } = Input;
@@ -37,10 +38,10 @@ function InputArea({
   aiType,
   setAiType,
   handleSendMessage,
+  msgLoading,
 }: InputAreaProps) {
   const [inputValue, setInputValue] = useState('');
   const [transcript, setTranscript] = useState('');
-  //   const [aiType, setAiType] = useState<React.ReactNode>(null);
   const [isListening, setIsListening] = useState(false);
   const [status, setStatus] = useState('准备就绪');
   const recognitionRef = useRef<any>(null);
@@ -120,7 +121,6 @@ function InputArea({
 
   const handleGainMessage = () => {
     if (inputValue.trim()) {
-      console.log('发送消息:', inputValue);
       handleSendMessage(inputValue);
       setInputValue('');
     }
@@ -200,7 +200,7 @@ function InputArea({
               className="send-button"
               style={{ borderRadius: '6px' }}
               onClick={handleGainMessage}
-              disabled={!inputValue.trim()}
+              disabled={!inputValue.trim() || msgLoading}
             />
           </Space>
         </div>
