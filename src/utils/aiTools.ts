@@ -1,5 +1,6 @@
 // aiTools.ts
 import { z } from 'zod';
+import { getRealTimeWeather } from './weatherTools';
 
 // 声明工具集
 const toolsMap = new Map([
@@ -35,6 +36,34 @@ const toolsMap = new Map([
           return {
             role: 'tool',
             content: '代码下载失败',
+          };
+        }
+      },
+    },
+  ],
+  [
+    'getWeather',
+    {
+      type: 'function',
+      function: {
+        name: 'getWeather',
+        description: '获取天气信息',
+        parameters: z.object({
+          city: z.string().describe('城市名称'),
+        }),
+      },
+      fun: async ({ city }: { city: string }) => {
+        try {
+          const weatherData = await getRealTimeWeather(city);
+          console.log(weatherData);
+          return {
+            role: 'tool',
+            content: weatherData,
+          };
+        } catch (error) {
+          return {
+            role: 'tool',
+            content: '获取天气信息失败',
           };
         }
       },
