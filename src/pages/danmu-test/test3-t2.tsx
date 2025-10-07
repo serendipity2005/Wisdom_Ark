@@ -19,7 +19,6 @@ import {
 const { Option } = Select;
 const { Title } = Typography;
 
-// 弹幕数据结构
 interface DanmakuItem {
   id: string;
   text: string;
@@ -32,6 +31,12 @@ interface DanmakuItem {
   width: number;
   timestamp: number;
   type: 'scroll' | 'top' | 'bottom';
+  // 用于轨道管理，记录弹幕所在的轨道和预计离开时间
+  trackInfo?: {
+    index: number;
+    expectedExitTime: number;
+    speed: number; // 记录弹幕的速度，用于轨道管理
+  };
 }
 
 // Redux状态类型
@@ -125,29 +130,41 @@ const initialState: DanmakuState = {
 const store = createStore(danmakuReducer, initialState);
 
 // 弹幕渲染Hook
+// ... existing code ...
+// 弹幕渲染Hook
 const useDanmakuRenderer = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animationIdRef = useRef<number>(0);
-  const danmakusRef = useRef<DanmakuItem[]>([]);
-  const isPlayingRef = useRef<boolean>(true);
-  const settingsRef = useRef<any>({});
+  const workerRef = useRef<Worker | null>(null);
   const tracksRef = useRef<boolean[]>([]);
   const trackHeightRef = useRef<number>(30);
+
+  // 轨道信息，存储每个轨道上最后一个弹幕的预计离开时间和速度
+  const trackInfoRef = useRef<{ lastDanmakuExitTime: number; speed: number }[]>(
+    [],
+  );
 
   // Canvas 初始化和大小调整
   const resizeCanvas = useCallback(() => {
     if (!canvasRef.current) return;
 
     const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
     const rect = canvas.getBoundingClientRect();
     canvas.width = rect.width * window.devicePixelRatio;
     canvas.height = rect.height * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     canvas.style.width = rect.width + 'px';
     canvas.style.height = rect.height + 'px';
+
+    // 如果有Worker，通知Worker更新Canvas尺寸
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'RESIZE_CANVAS',
+        payload: {
+          width: rect.width,
+          height: rect.height,
+          devicePixelRatio: window.devicePixelRatio,
+        },
+      });
+    }
   }, []);
 
   // 初始化轨道
@@ -159,26 +176,125 @@ const useDanmakuRenderer = () => {
       canvas.height / window.devicePixelRatio / trackHeightRef.current,
     );
     tracksRef.current = new Array(trackCount).fill(false);
+    trackInfoRef.current = new Array(trackCount)
+      .fill(null)
+      .map(() => ({ lastDanmakuExitTime: 0, speed: 0 }));
   }, []);
 
   // 获取可用轨道
-  const getAvailableTrack = useCallback((): number => {
-    const trackIndex = tracksRef.current.findIndex((track) => !track);
-    if (trackIndex !== -1) {
-      tracksRef.current[trackIndex] = true;
-      return trackIndex;
-    }
-    // 如果没有空闲轨道，随机选择一个
-    return Math.floor(Math.random() * tracksRef.current.length);
-  }, []);
+  const getAvailableTrack = useCallback(
+    (textWidth: number, speed: number): number => {
+      if (!canvasRef.current) return 0;
 
-  // 释放轨道
-  const releaseTrack = useCallback((trackIndex: number) => {
-    if (trackIndex >= 0 && trackIndex < tracksRef.current.length) {
-      tracksRef.current[trackIndex] = false;
-    }
-  }, []);
+      const canvas = canvasRef.current;
+      const canvasWidth = canvas.width / window.devicePixelRatio;
+      const currentTime = Date.now();
 
+      // 计算弹幕完全通过屏幕所需的时间
+      const duration = ((canvasWidth + textWidth) / (speed || 100)) * 1000;
+      const expectedExitTime = currentTime + duration;
+
+      // 查找所有可用轨道 - 轨道上没有弹幕或者只有相同速度的弹幕且最后一个弹幕已经离开或即将离开
+      const availableTracks: number[] = [];
+
+      for (let i = 0; i < tracksRef.current.length; i++) {
+        // 如果轨道上没有弹幕或者轨道上弹幕的速度与当前弹幕速度相同，并且已经离开屏幕
+        if (
+          trackInfoRef.current[i].speed === 0 ||
+          (trackInfoRef.current[i].speed === speed &&
+            currentTime > trackInfoRef.current[i].lastDanmakuExitTime)
+        ) {
+          availableTracks.push(i);
+        }
+      }
+
+      // 如果有完全符合条件的轨道，随机选择一个
+      if (availableTracks.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableTracks.length);
+        const selectedTrack = availableTracks[randomIndex];
+
+        // 更新轨道信息
+        trackInfoRef.current[selectedTrack] = {
+          lastDanmakuExitTime: expectedExitTime,
+          speed: speed,
+        };
+        return selectedTrack;
+      }
+
+      // 查找速度相同的轨道
+      const sameSpeedTracks: { index: number; exitTime: number }[] = [];
+      for (let i = 0; i < trackInfoRef.current.length; i++) {
+        // 只考虑速度相同的轨道
+        if (trackInfoRef.current[i].speed === speed) {
+          sameSpeedTracks.push({
+            index: i,
+            exitTime: trackInfoRef.current[i].lastDanmakuExitTime,
+          });
+        }
+      }
+
+      // 如果有速度相同的轨道，选择最早释放的轨道
+      if (sameSpeedTracks.length > 0) {
+        // 按释放时间排序
+        sameSpeedTracks.sort((a, b) => a.exitTime - b.exitTime);
+
+        // 从前几个最早释放的轨道中随机选择一个（增加随机性）
+        const candidates = sameSpeedTracks.slice(
+          0,
+          Math.min(3, sameSpeedTracks.length),
+        );
+        const selectedTrack =
+          candidates[Math.floor(Math.random() * candidates.length)].index;
+
+        // 更新选中轨道的信息
+        trackInfoRef.current[selectedTrack] = {
+          lastDanmakuExitTime: expectedExitTime,
+          speed: speed,
+        };
+        return selectedTrack;
+      }
+
+      // 如果没有找到速度相同的轨道，随机选择一个当前空闲的轨道（没有弹幕）
+      const emptyTracks: number[] = [];
+      for (let i = 0; i < tracksRef.current.length; i++) {
+        if (trackInfoRef.current[i].speed === 0) {
+          emptyTracks.push(i);
+        }
+      }
+
+      if (emptyTracks.length > 0) {
+        const randomIndex = Math.floor(Math.random() * emptyTracks.length);
+        const selectedTrack = emptyTracks[randomIndex];
+
+        trackInfoRef.current[selectedTrack] = {
+          lastDanmakuExitTime: expectedExitTime,
+          speed: speed,
+        };
+        return selectedTrack;
+      }
+
+      // 如果所有轨道都被占用，选择最早释放的轨道（即使速度不同）
+      let earliestAnyTrack = 0;
+      let earliestAnyTime = trackInfoRef.current[0].lastDanmakuExitTime;
+      for (let i = 1; i < trackInfoRef.current.length; i++) {
+        if (trackInfoRef.current[i].lastDanmakuExitTime < earliestAnyTime) {
+          earliestAnyTime = trackInfoRef.current[i].lastDanmakuExitTime;
+          earliestAnyTrack = i;
+        }
+      }
+
+      // 更新选中轨道的信息
+      trackInfoRef.current[earliestAnyTrack] = {
+        lastDanmakuExitTime: expectedExitTime,
+        speed: speed,
+      };
+      return earliestAnyTrack;
+    },
+    [],
+  );
+
+  // 添加弹幕
+  // ... existing code ...
   // 添加弹幕
   const addDanmaku = useCallback(
     (
@@ -188,133 +304,113 @@ const useDanmakuRenderer = () => {
     ) => {
       if (!canvasRef.current) return;
 
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
-
-      const fontSize = settingsRef.current.fontSize || 20;
-      ctx.font = `${fontSize}px Arial`;
-      const textWidth = ctx.measureText(text).width;
-
-      const trackIndex = getAvailableTrack();
-      const y = trackIndex * trackHeightRef.current + fontSize;
+      // 修复：从 store 获取当前状态
+      const currentState = store.getState();
 
       const danmaku: DanmakuItem = {
         id: Date.now().toString() + Math.random(),
         text,
-        x: canvas.width / window.devicePixelRatio,
-        y: y,
-        speed: (settingsRef.current.speed || 1) * (50 + Math.random() * 50),
+        x: canvasRef.current.width / window.devicePixelRatio,
+        y: 0,
+        speed: 100 * (currentState.settings.speed || 1),
         color,
-        fontSize,
-        opacity: settingsRef.current.opacity || 0.8,
-        width: textWidth,
+        fontSize: currentState.settings.fontSize || 20,
+        opacity: currentState.settings.opacity || 0.8,
+        width: 0,
         timestamp: Date.now(),
         type,
+        trackInfo: {
+          index: 0,
+          expectedExitTime: 0,
+          speed: 100 * (currentState.settings.speed || 1),
+        },
       };
 
-      danmakusRef.current.push(danmaku);
-
-      // 设置轨道释放定时器
-      const duration =
-        ((canvas.width / window.devicePixelRatio + textWidth) / danmaku.speed) *
-        1000;
-      setTimeout(() => {
-        releaseTrack(trackIndex);
-      }, duration * 0.3); // 提前释放轨道，提高密度
+      if (workerRef.current) {
+        workerRef.current.postMessage({
+          type: 'ADD_DANMAKU',
+          payload: danmaku,
+        });
+      }
     },
-    [getAvailableTrack, releaseTrack],
+    [], // 移除对 state.settings 的依赖
   );
-
-  // 更新弹幕列表
-  const updateDanmakus = useCallback((danmakus: DanmakuItem[]) => {
-    danmakusRef.current = [...danmakus];
-  }, []);
-
+  // ... existing code ...
   // 更新设置
   const updateSettings = useCallback((settings: any) => {
-    settingsRef.current = settings;
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'UPDATE_SETTINGS',
+        payload: settings,
+      });
+    }
   }, []);
 
   // 设置播放状态
   const setPlaying = useCallback((isPlaying: boolean) => {
-    isPlayingRef.current = isPlaying;
-    if (isPlaying && !animationIdRef.current) {
-      animate();
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'SET_PLAYING',
+        payload: isPlaying,
+      });
     }
   }, []);
 
   // 清空弹幕
   const clearDanmakus = useCallback(() => {
-    danmakusRef.current = [];
     tracksRef.current.fill(false);
-  }, []);
-
-  // 动画循环
-  const animate = useCallback(() => {
-    if (!isPlayingRef.current) {
-      animationIdRef.current = 0;
-      return;
-    }
-
-    if (!canvasRef.current) return;
-
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    ctx.clearRect(
-      0,
-      0,
-      canvas.width / window.devicePixelRatio,
-      canvas.height / window.devicePixelRatio,
-    );
-
-    if (settingsRef.current.showDanmaku) {
-      // 更新和渲染弹幕
-      danmakusRef.current = danmakusRef.current.filter((danmaku) => {
-        // 更新位置
-        if (danmaku.type === 'scroll') {
-          danmaku.x -= danmaku.speed * 0.016; // 60fps
-        }
-
-        // 检查是否需要移除
-        if (danmaku.x + danmaku.width < 0) {
-          return false;
-        }
-
-        // 渲染弹幕
-        ctx.save();
-        ctx.font = `${danmaku.fontSize}px Arial`;
-        ctx.fillStyle = danmaku.color;
-        ctx.globalAlpha = danmaku.opacity;
-
-        // 添加描边效果，提高可读性
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = 2;
-        ctx.strokeText(danmaku.text, danmaku.x, danmaku.y);
-        ctx.fillText(danmaku.text, danmaku.x, danmaku.y);
-        ctx.restore();
-
-        return true;
+    if (workerRef.current) {
+      workerRef.current.postMessage({
+        type: 'CLEAR_DANMAKUS',
       });
     }
-
-    animationIdRef.current = requestAnimationFrame(animate);
   }, []);
 
-  // 开始动画
-  const start = useCallback(() => {
-    if (!animationIdRef.current) {
-      animate();
-    }
-  }, [animate]);
+  // 初始化Worker
+  // ... existing code ...
+  // 初始化Worker
+  const initWorker = useCallback(() => {
+    if (!canvasRef.current) return;
 
-  // 销毁动画
-  const destroy = useCallback(() => {
-    if (animationIdRef.current) {
-      cancelAnimationFrame(animationIdRef.current);
-      animationIdRef.current = 0;
+    // 创建Web Worker
+    workerRef.current = new Worker(new URL('./t1-worker.ts', import.meta.url), {
+      type: 'module',
+    });
+
+    // 监听Worker消息
+    workerRef.current.onmessage = (e) => {
+      const { type, payload } = e.data;
+
+      switch (type) {
+        case 'ERROR':
+          console.error('Worker error:', payload);
+          break;
+      }
+    };
+
+    // 获取离屏Canvas并传递给Worker
+    const offscreenCanvas = canvasRef.current.transferControlToOffscreen();
+
+    workerRef.current.postMessage(
+      {
+        type: 'INIT',
+        payload: {
+          offscreenCanvas,
+          width: canvasRef.current.width,
+          height: canvasRef.current.height,
+          devicePixelRatio: window.devicePixelRatio,
+        },
+      },
+      [offscreenCanvas],
+    );
+  }, []);
+  // ... existing code ...
+
+  // 销毁Worker
+  const destroyWorker = useCallback(() => {
+    if (workerRef.current) {
+      workerRef.current.terminate();
+      workerRef.current = null;
     }
   }, []);
 
@@ -322,16 +418,16 @@ const useDanmakuRenderer = () => {
   return {
     canvasRef,
     addDanmaku,
-    updateDanmakus,
     updateSettings,
     setPlaying,
     clearDanmakus,
-    start,
-    destroy,
     resizeCanvas,
     initTracks,
+    initWorker,
+    destroyWorker,
   };
 };
+// ... existing code ...
 
 // 主组件
 const VideoDanmakuSystem: React.FC = () => {
@@ -352,29 +448,30 @@ const VideoDanmakuSystem: React.FC = () => {
   }, []);
 
   // 初始化Canvas渲染器
+  // ... existing code ...
+  // 初始化Canvas渲染器
   useEffect(() => {
     if (renderer.canvasRef.current) {
       renderer.resizeCanvas();
       renderer.initTracks();
-      renderer.start();
+      renderer.initWorker(); // 初始化Worker
 
       // 窗口大小变化时重新调整canvas
       const handleResize = () => {
-        renderer.destroy();
         renderer.resizeCanvas();
         renderer.initTracks();
         renderer.updateSettings(state.settings);
         renderer.setPlaying(state.isPlaying);
-        renderer.start();
       };
 
       window.addEventListener('resize', handleResize);
       return () => {
         window.removeEventListener('resize', handleResize);
-        renderer.destroy();
+        renderer.destroyWorker(); // 销毁Worker
       };
     }
   }, [renderer, state.settings, state.isPlaying]);
+  // ... existing code ...
 
   // 同步状态到渲染器
   useEffect(() => {
