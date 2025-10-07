@@ -43,7 +43,9 @@ export default function AIEditorToolbar({ editor }: AIEditorToolbarProps) {
   const [statsModalVisible, setStatsModalVisible] = useState(false);
   const [fimService] = useState(
     () =>
-      new HybridFIMService((import.meta.env.VITE_HF_API_KEY as string) || ''),
+      new HybridFIMService(
+        (import.meta.env.VITE_HUGGINGFACE_TOKEN as string) || '',
+      ),
   );
 
   // 智能FIM补全
