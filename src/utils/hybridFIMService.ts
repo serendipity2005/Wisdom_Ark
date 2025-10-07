@@ -28,7 +28,7 @@ export class HybridFIMService {
   constructor(hfApiKey?: string) {
     // 优先使用传入的API Key，否则使用环境变量
 
-    const apiKey = hfApiKey || import.meta.env.VITE_HF_API_KEY;
+    const apiKey = hfApiKey || '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';
     // this.fimModel =
     //   import.meta.env.REACT_APP_HF_FIM_MODEL || 'bigcode/starcoder';
     this.fimModel = 'Qwen/Qwen2.5-Coder-7B-Instruct';
