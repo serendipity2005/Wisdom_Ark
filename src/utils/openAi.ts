@@ -51,6 +51,22 @@ const AI_SERVICES: AIServiceConfig[] = [
     lastCheck: null,
     lastSuccess: null,
   },
+  {
+    id: 'backup2',
+    name: 'deepseek',
+    priority: 3,
+    client: new OpenAI({
+      apiKey: 'sk-529ce6e9488446a59323d1950ea1dc8a',
+      baseURL: 'https://api.deepseek.com',
+      dangerouslyAllowBrowser: true,
+    }),
+    model: 'gpt-4o-mini',
+    status: 'checking',
+    responseTime: null,
+    consecutiveFailures: 0,
+    lastCheck: null,
+    lastSuccess: null,
+  },
 ];
 
 // ==================== 服务管理器 ====================
@@ -416,4 +432,130 @@ export const chatWithGPT = async (
   const error = lastError || new Error('所有 AI 服务都失败了');
   onError?.(error);
   return '发生错误，所有 AI 服务暂时不可用，请稍后重试';
+};
+
+// ==================== 无限制对话函数（不添加系统约束、不使用工具） ====================
+export interface ChatRawOptions {
+  model?: string;
+  temperature?: number;
+  stream?: boolean;
+  onChunk?: (chunk: string) => void;
+  onComplete?: (fullResponse: string) => void;
+  onError?: (error: any) => void;
+  onServiceSwitch?: (serviceName: string) => void;
+}
+
+export const chatRaw = async (
+  messages: { role: 'system' | 'user' | 'assistant'; content: string }[],
+  options: ChatRawOptions = {},
+) => {
+  const {
+    model,
+    temperature = 0.7,
+    stream = false,
+    onChunk,
+    onComplete,
+    onError,
+    onServiceSwitch,
+  } = options;
+
+  const attempted = new Set<string>();
+  let lastErr: any = null;
+
+  while (true) {
+    const svc = aiServiceManager.getCurrentService();
+    if (!svc) {
+      const err = new Error('所有 AI 服务都不可用');
+      onError?.(err);
+      throw err;
+    }
+    if (attempted.has(svc.id)) break;
+    attempted.add(svc.id);
+
+    try {
+      onServiceSwitch?.(svc.name);
+      const usedModel = model || svc.model || 'gpt-4o-mini';
+
+      // 非流式
+      if (!stream) {
+        const res = await svc.client.chat.completions.create({
+          model: usedModel,
+          messages,
+          temperature,
+        });
+        const content = res.choices?.[0]?.message?.content || '';
+        aiServiceManager.markServiceSuccess(svc.id);
+        onComplete?.(content);
+        return content;
+      }
+
+      // 流式
+      const res = await svc.client.chat.completions.create({
+        model: usedModel,
+        messages,
+        temperature,
+        stream: true,
+      });
+
+      let full = '';
+      for await (const chunk of res) {
+        const delta = chunk.choices?.[0]?.delta;
+        const txt = delta?.content || '';
+        if (txt) {
+          full += txt;
+          onChunk?.(txt);
+        }
+        if (chunk.choices?.[0]?.finish_reason) break;
+      }
+      aiServiceManager.markServiceSuccess(svc.id);
+      onComplete?.(full);
+      return full;
+    } catch (e) {
+      lastErr = e;
+      aiServiceManager.markServiceFailure(svc.id);
+      const next = aiServiceManager.selectBestService();
+      if (!next || attempted.has(next.id)) break;
+      await new Promise((r) => setTimeout(r, 500));
+    }
+  }
+
+  onError?.(lastErr);
+  return '';
+};
+
+export const chatInEditor = async (content: {
+  prefix: string;
+  suffix: string;
+}) => {
+  const { prefix, suffix } = content;
+  const client = new OpenAI({
+    baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+    apiKey: 'sk-da6f76fe6f8e4bc2871be0c57ffa3201',
+    dangerouslyAllowBrowser: true,
+  });
+
+  const completion = await client.completions.create({
+    model: 'qwen2.5-coder-7b-instruct',
+    prompt: `<|fim_prefix|>${prefix}<|fim_suffix|>${suffix}<|fim_middle|>`,
+  });
+  return completion.choices[0].text;
+
+  return `
+   let timer = null;
+ return function (fn, time) {
+   if(timer){
+     clearTimeout(timer);
+   }
+   timer = setTimeout(() => {
+     fn.apply(this, arguments);
+   },time)
+ }  
+}
+
+// 调用
+const debouncedScrollHandler = debounce(function() {
+  console.log('滚动事件触发');
+}, 300);
+
+window.addEventListener('scroll', debouncedScrollHandler);`;
 };

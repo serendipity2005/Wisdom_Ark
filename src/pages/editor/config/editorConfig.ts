@@ -27,6 +27,7 @@ import TableOfContents, {
 import { setTocItems } from '@/store/modules/tocSlice';
 import { useDispatch } from 'react-redux';
 import store from '@/store';
+import CodeBlockWithSuggestion from '../extensions/CodeBlockWithSuggestion';
 
 // you can also register individual languages
 const lowlight = createLowlight(all);
@@ -55,6 +56,7 @@ const editor = new Editor({
   extensions: [
     StarterKit.configure({
       paragraph: false, // 禁用默认的 paragraph 扩展
+      codeBlock: false,
     }),
 
     //   Document,
@@ -67,11 +69,10 @@ const editor = new Editor({
     TaskList,
     TaskItem,
     Blockquote,
+
     TableOfContents.configure({
       getIndex: getHierarchicalIndexes,
       onUpdate(content) {
-        console.log('执行了asdsada', content);
-
         // 修改 tocItems 数据
         store.dispatch(setTocItems(content));
         // const serializableContent = content.map((item) => {
@@ -118,13 +119,19 @@ const editor = new Editor({
     Image.configure({
       allowBase64: true,
     }),
-    CodeBlockLowlight.extend({
+    // CodeBlockLowlight.extend({
+    //   addNodeView() {
+    //     return ReactNodeViewRenderer(CodeBlock);
+    //   },
+    // }).configure({ lowlight }),
+    // 使用支持虚拟建议的代码块扩展，并配置 lowlight
+    CodeBlockWithSuggestion.extend({
       addNodeView() {
         return ReactNodeViewRenderer(CodeBlock);
       },
     }).configure({ lowlight }),
   ],
-  content: 'asddasd',
+  content: '',
   // autofocus: true,
 });
 

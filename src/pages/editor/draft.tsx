@@ -1,60 +1,173 @@
-import { useCallback, useMemo, useReducer, useRef, useState } from 'react';
-import {
-  Layout,
-  Button,
-  Avatar,
-  Space,
-  Tooltip,
-  Divider,
-  Tree,
-  Input,
-} from 'antd';
-import {
-  BoldOutlined,
-  ItalicOutlined,
-  UnderlineOutlined,
-  OrderedListOutlined,
-  UnorderedListOutlined,
-  LinkOutlined,
-  PictureOutlined,
-  FileOutlined,
-  FolderOutlined,
-  MenuOutlined,
-  CodeOutlined,
-  FontSizeOutlined,
-  QuestionCircleOutlined,
-  StrikethroughOutlined,
-  TableOutlined,
-} from '@ant-design/icons';
-import {
-  getHierarchicalIndexes,
-  TableOfContents,
-} from '@tiptap/extension-table-of-contents';
-import { EditorContent, useEditor } from '@tiptap/react';
-
+import { useRef, useState, useEffect, useCallback } from 'react';
+import { Layout, Button, Avatar, Space, Input } from 'antd';
+import { MenuOutlined } from '@ant-design/icons';
+import { EditorContent } from '@tiptap/react';
+import AIEditorBubble from '@/components/AIEditorBubble';
 import '@/assets/styles/tiptap.scss';
 const { Header, Sider, Content } = Layout;
 
 import editor from '@/pages/editor/config/editorConfig';
 import Toolbar from '../../components/ToolBar/index';
-import { BubbleMenu, FloatingMenu } from '@tiptap/react/menus';
 import React from 'react';
 import { Toc } from '@/components/Toc';
 import { useSelector } from 'react-redux';
 import CustomLinkBubble from '@/components/LinkBubble';
+import AIEditorToolbar from '@/components/AiEditorToolbar';
+import AISuggestionPreview from '@/components/AISuggestionPreview';
+// 导入 FIM 相关服务
+import { HybridFIMService } from '@/utils/hybridFIMService';
+import { AutoFIMService, type FIMSuggestion } from '@/utils/autoFIMService';
+import isInCodeContext from '@/utils/isInCode';
+
 const MemorizedToC = React.memo(Toc);
+
 const TiptapEditor = () => {
   const items = useSelector((state: any) => state.toc.tocItems);
   const [collapsed, setCollapsed] = useState(false);
   const [isLinkBubbleVisible, setIsLinkBubbleVisible] = useState(false);
   const editorContainerRef = useRef<HTMLDivElement>(null);
-  // 工具栏"插入链接"按钮的回调
+
+  // FIM 相关状态
+  const [fimSuggestions, setFimSuggestions] = useState<FIMSuggestion[]>([]);
+  const [showFimSuggestions, setShowFimSuggestions] = useState(false);
+  const [isInCode, setIsInCode] = useState(false);
+  const [isFimProcessing, setIsFimProcessing] = useState(false);
+  //  新增 临时内容状态
+  const [isTempMode, setIsTempMode] = useState(false);
+  // 新增：内联建议状态
+  const [inlineSuggestion, setInlineSuggestion] =
+    useState<FIMSuggestion | null>(null);
+  const [showInlineSuggestion, setShowInlineSuggestion] = useState(false);
+
+  // FIM 服务引用
+  const fimServiceRef = useRef<HybridFIMService | null>(null);
+  const autoFIMServiceRef = useRef<AutoFIMService | null>(null);
+
+  // 新增：内联建议事件处理
+  useEffect(() => {
+    fimServiceRef.current = new HybridFIMService();
+    autoFIMServiceRef.current = new AutoFIMService(fimServiceRef.current, {
+      delay: 2000,
+      maxSuggestions: 3,
+      minContextLength: 10,
+      enabled: true,
+      autoTriggerInCode: false,
+    });
+
+    const handleFIMSuggestion = (event: CustomEvent) => {
+      const { allSuggestions } = event.detail;
+      setFimSuggestions(allSuggestions);
+      setShowFimSuggestions(true);
+    };
+
+    const handleFIMClear = () => {
+      setFimSuggestions([]);
+      setShowFimSuggestions(false);
+    };
+
+    // 新增：内联建议事件处理
+    const handleInlineSuggestion = (event: CustomEvent) => {
+      const { suggestion } = event.detail;
+      setInlineSuggestion(suggestion);
+      setShowInlineSuggestion(true);
+    };
+
+    const handleInlineSuggestionClear = () => {
+      setInlineSuggestion(null);
+      setShowInlineSuggestion(false);
+    };
+
+    window.addEventListener(
+      'fim-suggestion',
+      handleFIMSuggestion as EventListener,
+    );
+    window.addEventListener(
+      'fim-suggestions-cleared',
+      handleFIMClear as EventListener,
+    );
+    window.addEventListener(
+      'fim-inline-suggestion',
+      handleInlineSuggestion as EventListener,
+    );
+    window.addEventListener(
+      'fim-inline-suggestions-cleared',
+      handleInlineSuggestionClear as EventListener,
+    );
+
+    return () => {
+      window.removeEventListener(
+        'fim-suggestion',
+        handleFIMSuggestion as EventListener,
+      );
+      window.removeEventListener(
+        'fim-suggestions-cleared',
+        handleFIMClear as EventListener,
+      );
+      window.removeEventListener(
+        'fim-inline-suggestion',
+        handleInlineSuggestion as EventListener,
+      );
+      window.removeEventListener(
+        'fim-inline-suggestions-cleared',
+        handleInlineSuggestionClear as EventListener,
+      );
+      autoFIMServiceRef.current?.destroy();
+    };
+  }, []);
+
+  // 新增：监听编辑器变化，清除建议
+  const handleEditorUpdate = useCallback(() => {
+    if (!editor) return;
+    const { from } = editor.state.selection;
+    const content = editor.getText();
+
+    const context = {
+      content,
+      cursorPosition: from,
+      language: 'markdown',
+    };
+    const inCode = isInCodeContext(context);
+    setIsInCode(inCode);
+    // 如果有内联建议，清除它
+    if (showInlineSuggestion) {
+      setShowInlineSuggestion(false);
+      setInlineSuggestion(null);
+    }
+    if (autoFIMServiceRef.current) {
+      autoFIMServiceRef.current.updateEditorState({
+        content,
+        cursorPosition: from,
+        fileName: 'draft.md',
+        language: 'markdown',
+        lastEditTime: Date.now(),
+      });
+    }
+  }, [showInlineSuggestion]);
+  useEffect(() => {
+    if (showInlineSuggestion && inlineSuggestion) {
+      console.log('showInlineSuggestion', showInlineSuggestion);
+      console.log('inlineSuggestion', inlineSuggestion);
+      // editor.chain().focus().insertContent(inlineSuggestion.content).run();
+    }
+  }, [showInlineSuggestion, inlineSuggestion]);
+  // 新增：监听编辑器变化
+  useEffect(() => {
+    if (editor) {
+      editor.on('update', handleEditorUpdate);
+      editor.on('selectionUpdate', handleEditorUpdate);
+
+      return () => {
+        editor.off('update', handleEditorUpdate);
+        editor.off('selectionUpdate', handleEditorUpdate);
+      };
+    }
+  }, [handleEditorUpdate]);
+
+  // 现有的代码保持不变
   const handleInsertLink = () => {
     if (!editor) return;
 
     const { from, to } = editor.state.selection;
-    // if (from !== to) {
-    // 有选中内容时才显示气泡框
     if (from == to) {
       const linkText = '链接';
       editor
@@ -65,21 +178,18 @@ const TiptapEditor = () => {
         .run();
     }
     setIsLinkBubbleVisible(true);
-    // }
   };
-  // 提交链接（传给气泡框的回调）
+
   const handleLinkSubmit = (text: string, url: string) => {
     if (!editor) return;
 
     const { from, to } = editor.state.selection;
-
     const linkText = from !== to ? text : text || '链接';
 
-    // 执行插入链接操作
     editor
       .chain()
       .focus()
-      .deleteRange({ from, to }) // 删除选中的文本
+      .deleteRange({ from, to })
       .insertContentAt(from, {
         type: 'text',
         text: linkText,
@@ -89,9 +199,9 @@ const TiptapEditor = () => {
 
     setIsLinkBubbleVisible(false);
   };
+
   return (
     <Layout className="editor-container" style={{ height: '100vh' }}>
-      {/* Header - 包含导航栏和工具栏 */}
       <Header
         style={{
           background: '#fff',
@@ -100,7 +210,6 @@ const TiptapEditor = () => {
           height: 'auto',
         }}
       >
-        {/* 导航栏 */}
         <div
           style={{
             padding: '0 24px',
@@ -129,6 +238,26 @@ const TiptapEditor = () => {
           </div>
 
           <Space>
+            {/* 新增：状态指示器 */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  background: isInCode ? '#e3f2fd' : '#f5f5f5',
+                  color: isInCode ? '#1976d2' : '#666',
+                }}
+              >
+                {isInCode ? '🔧 代码模式' : '📝 文本模式'}
+              </span>
+              {isInCode && (
+                <span style={{ fontSize: '12px', color: '#4caf50' }}>
+                  🤖 自动 FIM 已启用
+                </span>
+              )}
+            </div>
+
             <Button type="text">保存成功</Button>
             <Button type="primary" ghost>
               草稿箱
@@ -141,12 +270,23 @@ const TiptapEditor = () => {
           </Space>
         </div>
 
-        {/* 工具栏 */}
-        <Toolbar handleInsertLink={handleInsertLink}></Toolbar>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            padding: '8px 24px',
+            width: 'max-content',
+            margin: 'auto',
+          }}
+        >
+          <Toolbar handleInsertLink={handleInsertLink} />
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px' }}>
+            <AIEditorToolbar editor={editor} />
+          </div>
+        </div>
       </Header>
 
       <Layout>
-        {/* 左侧目录 */}
         <Sider
           width={280}
           style={{ background: '#fff', borderRight: '1px solid #f0f0f0' }}
@@ -164,7 +304,6 @@ const TiptapEditor = () => {
         </Sider>
 
         <Layout style={{ background: '#fff' }}>
-          {/* 编辑区域 */}
           <Content
             style={{
               padding: '0',
@@ -183,69 +322,9 @@ const TiptapEditor = () => {
                 position: 'relative',
               }}
             >
-              {/* 这里是编辑器内容区域 */}
-              {/* {editor && (
-                <BubbleMenu className="bubble-menu" editor={editor}>
-                  <Button
-                    onClick={() => editor.chain().focus().toggleBold().run()}
-                    className={editor.isActive('bold') ? 'is-active' : ''}
-                  >
-                    <BoldOutlined />
-                  </Button>
-                  <Button
-                    onClick={() => editor.chain().focus().toggleItalic().run()}
-                    className={editor.isActive('italic') ? 'is-active' : ''}
-                  >
-                    <ItalicOutlined />
-                  </Button>
-                  <Button
-                    onClick={() => editor.chain().focus().toggleStrike().run()}
-                    className={editor.isActive('strike') ? 'is-active' : ''}
-                  >
-                    <StrikethroughOutlined />
-                  </Button>
-                </BubbleMenu>
-              )}
-
-              {editor && (
-                <FloatingMenu className="floating-menu" editor={editor}>
-                  <Button
-                    onClick={() =>
-                      editor.chain().focus().toggleHeading({ level: 1 }).run()
-                    }
-                    className={
-                      editor.isActive('heading', { level: 1 })
-                        ? 'is-active'
-                        : ''
-                    }
-                  >
-                    H1
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      editor.chain().focus().toggleHeading({ level: 2 }).run()
-                    }
-                    className={
-                      editor.isActive('heading', { level: 2 })
-                        ? 'is-active'
-                        : ''
-                    }
-                  >
-                    H2
-                  </Button>
-                  <Button
-                    onClick={() =>
-                      editor.chain().focus().toggleBulletList().run()
-                    }
-                    className={editor.isActive('bulletList') ? 'is-active' : ''}
-                  >
-                    Bullet list
-                  </Button>
-                </FloatingMenu>
-              )} */}
-
               <EditorContent className="tiptap" editor={editor}></EditorContent>
-              {/* 添加链接气泡框 */}
+              <AIEditorBubble editor={editor} />
+              <AISuggestionPreview editor={editor} />
               <CustomLinkBubble
                 onSubmit={handleLinkSubmit}
                 editor={editor}
@@ -256,13 +335,6 @@ const TiptapEditor = () => {
           </Content>
         </Layout>
       </Layout>
-
-      {/* <style jsx>{`
-        @keyframes blink {
-          0%, 50% { opacity: 1; }
-          51%, 100% { opacity: 0; }
-        }
-      `}</style> */}
     </Layout>
   );
 };
