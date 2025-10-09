@@ -1,13 +1,17 @@
-import { Node, mergeAttributes } from '@tiptap/core';
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import { HybridFIMService } from '@/utils/hybridFIMService';
-import isInCodeContext from '@/utils/isInCode';
+
 import type { Transaction } from 'prosemirror-state';
+import { ReactNodeViewRenderer } from '@tiptap/react';
+import CodeBlock from '@/components/CodeBlock';
 
 // 自定义代码块扩展，支持虚拟建议
 const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
+  addNodeView() {
+    return ReactNodeViewRenderer(CodeBlock);
+  },
   addProseMirrorPlugins() {
     let fimService: HybridFIMService | null = null; //FIM服务实例
     let suggestionTimeout: string | number | NodeJS.Timeout | null | undefined =
@@ -15,6 +19,17 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
     let currentSuggestion: string | null = null; // 当前建议
     let isUpdating = false;
 
+    // ✨ 新增：取消控制器和指纹缓存
+    let currentAbortController: AbortController | null = null;
+    let lastRequestFingerprint: string | null = null;
+    let requestInProgress = false;
+    // ✨ 优化：生成请求指纹，避免重复请求
+    const generateFingerprint = (prefix: string, suffix: string): string => {
+      // 取前后文的关键部分生成指纹
+      const prefixKey = prefix.slice(-64); // 只取末尾64字符
+      const suffixKey = suffix.slice(0, 64); // 只取开头64字符
+      return `${prefixKey}|${suffixKey}`;
+    };
     // 初始化 FIM 服务
     const initFIMService = () => {
       if (!fimService) {
@@ -23,31 +38,73 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
     };
 
     // 生成 AI 建议
-    const generateSuggestion = async (prefix: string, suffix: string) => {
+    const generateSuggestion = async (
+      prefix: string,
+      suffix: string,
+      abortSignal: AbortSignal,
+    ) => {
       if (!fimService) {
         initFIMService();
         return null;
       }
 
       try {
-        // 这里返回模拟数据，实际使用时取消注释
+        // 检查是否已被取消
+        if (abortSignal?.aborted) {
+          console.log('请求已取消');
+
+          return null;
+        }
+        console.log('发起AI建议请求...');
+        //❌ 问题2：无法取消进行中的 LLM 请求
+        //这里返回模拟数据，实际使用时取消注释 需要传入 abortSignal
         // const suggestion = await fimService.fillInMiddle(prefix, suffix, {
         //   maxTokens: 100,
         //   temperature: 0.7,
         //   topP: 0.9,
+        //   signal: abortSignal
         // });
         // return suggestion;
 
-        return `let timer = null;
-        return function (fn, time) {
-          if(timer){
+        // return `let timer = null;
+        // return function (fn, time) {
+        //   if(timer){
+        //     clearTimeout(timer);
+        //   }
+        //   timer = setTimeout(() => {
+        //     fn.apply(this, arguments);
+        //   },time)
+        // }`;
+
+        // 模拟数据（实际使用时删除）
+        return new Promise<string>((resolve, reject) => {
+          const timer = setTimeout(() => {
+            if (abortSignal?.aborted) {
+              reject(new DOMException('Request aborted', 'AbortError'));
+              return;
+            }
+            resolve(`let timer = null;
+            return function (fn, time) {
+              if(timer){
+                clearTimeout(timer);
+              }
+              timer = setTimeout(() => {
+                fn.apply(this, arguments);
+              },time)
+            }`);
+          }, 500); // 模拟网络延迟
+
+          abortSignal?.addEventListener('abort', () => {
             clearTimeout(timer);
-          }
-          timer = setTimeout(() => {
-            fn.apply(this, arguments);
-          },time)
-        }`;
+            reject(new DOMException('Request aborted', 'AbortError'));
+          });
+        });
       } catch (error) {
+        // ✨ 区分取消错误和其他错误
+        if ((error as any).name === 'AbortError') {
+          console.log('请求已取消');
+          return null;
+        }
         console.error('生成建议失败:', error);
         return null;
       }
@@ -131,6 +188,12 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
 
             // Esc 键取消建议
             if (event.key === 'Escape' && currentSuggestion) {
+              // ✨ 取消当前请求
+              if (currentAbortController) {
+                currentAbortController.abort();
+                currentAbortController = null;
+              }
+
               const transaction = state.tr.setMeta('suggestion', null);
               dispatch(transaction);
               currentSuggestion = null;
@@ -146,6 +209,10 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
             if (isUpdating) {
               return;
             }
+            // ✨ 新增：检查编辑器焦点状态
+            if (!editorView.hasFocus()) {
+              return;
+            }
             const { state, dispatch } = editorView;
             const selection = state.selection;
             const clearSuggestion = () => {
@@ -159,10 +226,23 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
               }
             };
             // 取消待处理的建议生成
+            // ❌ 问题1：只清除定时器，不取消已发起的请求
+            // if (suggestionTimeout) {
+            //   clearTimeout(suggestionTimeout);
+            //   suggestionTimeout = null;
+            // }
+            // ✨ ------------优化：取消之前的请求和定时器---------------------
             if (suggestionTimeout) {
               clearTimeout(suggestionTimeout);
               suggestionTimeout = null;
             }
+
+            if (currentAbortController) {
+              currentAbortController.abort();
+              currentAbortController = null;
+            }
+
+            // -------------------------
             if (!selection) {
               clearSuggestion();
               return;
@@ -188,46 +268,92 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
             const cursorOffset = $cursor.parentOffset;
             const prefix = codeContent.substring(0, cursorOffset);
             const suffix = codeContent.substring(cursorOffset);
-
-            // 检查是否在代码上下文中
-            const context = {
-              content: codeContent,
-              cursorPosition: cursorOffset,
-            };
-            if (!isInCodeContext(context)) {
-              clearSuggestion();
+            // ✨ 核心优化：指纹去重
+            const fingerprint = generateFingerprint(prefix, suffix);
+            if (fingerprint === lastRequestFingerprint && requestInProgress) {
+              console.log('跳过重复请求');
               return;
             }
+            // suggestionTimeout = setTimeout(async () => {
+            //   if (!$cursor || $cursor.parent.type.name !== 'codeBlock') {
+            //     return; // 直接返回，不生成建议
+            //   }
+            //   const suggestionText = await generateSuggestion(prefix, suffix);
+            //   if (!suggestionText) {
+            //     dispatch(state.tr.setMeta('suggestion', null));
+            //     currentSuggestion = null;
+            //     return;
+            //   }
 
-            // // 延迟生成建议
-            // if (suggestionTimeout) {
-            //   clearTimeout(suggestionTimeout);
-            //   suggestionTimeout = null;
-            // }
-
+            //   currentSuggestion = suggestionText;
+            //   if (!$cursor || $cursor.parent.type.name !== 'codeBlock') {
+            //     return; // 直接返回，不生成建议
+            //   }
+            //   dispatch(
+            //     // 设置元数据  建议的内容和显示位置
+            //     state.tr.setMeta('suggestion', {
+            //       pos: $cursor.pos,
+            //       text: suggestionText,
+            //     }),
+            //   );
+            // }, 1000);
+            // ✨ 优化：缩短去抖时间，提升响应速度
             suggestionTimeout = setTimeout(async () => {
+              // 二次检查：确保上下文仍然有效
               if (!$cursor || $cursor.parent.type.name !== 'codeBlock') {
-                return; // 直接返回，不生成建议
-              }
-              const suggestionText = await generateSuggestion(prefix, suffix);
-              if (!suggestionText) {
-                dispatch(state.tr.setMeta('suggestion', null));
-                currentSuggestion = null;
                 return;
               }
 
-              currentSuggestion = suggestionText;
-              if (!$cursor || $cursor.parent.type.name !== 'codeBlock') {
-                return; // 直接返回，不生成建议
+              // 更新指纹和请求状态
+              lastRequestFingerprint = fingerprint;
+              requestInProgress = true;
+
+              // 创建新的取消控制器
+              currentAbortController = new AbortController();
+
+              try {
+                const suggestionText = await generateSuggestion(
+                  prefix,
+                  suffix,
+                  currentAbortController.signal,
+                );
+
+                // 检查请求是否被取消
+                if (currentAbortController.signal.aborted) {
+                  return;
+                }
+
+                if (!suggestionText) {
+                  dispatch(state.tr.setMeta('suggestion', null));
+                  currentSuggestion = null;
+                  return;
+                }
+
+                // 最终检查：确保光标位置仍然有效
+                if (!$cursor || $cursor.parent.type.name !== 'codeBlock') {
+                  return;
+                }
+
+                currentSuggestion = suggestionText;
+                console.log(suggestionText);
+
+                dispatch(
+                  state.tr.setMeta('suggestion', {
+                    pos: $cursor.pos,
+                    text: suggestionText,
+                  }),
+                );
+
+                console.log('AI建议生成成功');
+              } catch (error) {
+                if ((error as any).name !== 'AbortError') {
+                  console.error('生成建议失败:', error);
+                }
+              } finally {
+                requestInProgress = false;
+                currentAbortController = null;
               }
-              dispatch(
-                // 设置元数据  建议的内容和显示位置
-                state.tr.setMeta('suggestion', {
-                  pos: $cursor.pos,
-                  text: suggestionText,
-                }),
-              );
-            }, 1000);
+            }, 300); // ✨ 从1000ms减少到300ms
           };
 
           return {
@@ -236,15 +362,39 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
               if (isUpdating) {
                 return;
               }
-              if (view.state !== prevState) {
+
+              //old code
+              // if (view.state !== prevState) {
+              //   updateSuggestion();
+              // }
+              // ✨ 优化：只在关键状态变化时触发更新
+              const currentState = view.state;
+              const selectionChanged =
+                currentState.selection.from !== prevState.selection.from ||
+                currentState.selection.to !== prevState.selection.to;
+
+              const docChanged = !currentState.doc.eq(prevState.doc);
+
+              // 只在选择变化或文档变化时更新
+              if (selectionChanged || docChanged) {
                 updateSuggestion();
               }
             },
             destroy: () => {
+              // if (suggestionTimeout) {
+              //   clearTimeout(suggestionTimeout);
+              // }
+              // currentSuggestion = null;
+              // ✨ 清理资源
               if (suggestionTimeout) {
                 clearTimeout(suggestionTimeout);
               }
+              if (currentAbortController) {
+                currentAbortController.abort();
+              }
               currentSuggestion = null;
+              lastRequestFingerprint = null;
+              requestInProgress = false;
             },
           };
         },

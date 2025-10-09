@@ -11,7 +11,11 @@ export const ImgView = (props: ImgViewProps) => {
   const src = node?.attrs?.src || '';
   return (
     <NodeViewWrapper className="react-component">
-      <Image width={300} src={src} />
+      <Image
+        width={300}
+        src={src}
+        referrerPolicy={node?.attrs?.referrerPolicy}
+      />
     </NodeViewWrapper>
   );
 };

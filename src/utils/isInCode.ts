@@ -121,33 +121,50 @@ interface EditorContext {
   language?: string;
 }
 
-export default function isInCodeContext(context: EditorContext): boolean {
-  const { fileName, content, cursorPosition, language } = context;
-  console.log(context);
+// export default function isInCodeContext(context: EditorContext): boolean {
+//   const { fileName, content, cursorPosition, language } = context;
+//   console.log(context);
 
-  // 1. 基于文件扩展名
-  if (fileName && isCodeFile(fileName)) {
-    return true;
-  }
+//   // 1. 基于文件扩展名
+//   if (fileName && isCodeFile(fileName)) {
+//     return true;
+//   }
 
-  // 2. 基于语言设置
-  if (language && isCodeLanguage(language)) {
-    return true;
-  }
+//   // 2. 基于语言设置
+//   if (language && isCodeLanguage(language)) {
+//     return true;
+//   }
 
-  // 3. 基于内容特征
-  if (isCodeContent(content)) {
-    return true;
-  }
+//   // 3. 基于内容特征
+//   if (isCodeContent(content)) {
+//     return true;
+//   }
 
-  // 4. 基于光标位置
-  if (cursorPosition !== undefined && isInCodeBlock(content, cursorPosition)) {
-    return true;
-  }
+//   // 4. 基于光标位置
+//   if (cursorPosition !== undefined && isInCodeBlock(content, cursorPosition)) {
+//     return true;
+//   }
 
-  return false;
+//   return false;
+// }
+export default function isInCodeContext(
+  editor:
+    | { state: any; isActive: (name: string) => boolean }
+    | null
+    | undefined,
+): boolean {
+  if (!editor) return false;
+  const { selection } = editor.state || {};
+  const $from = selection?.$from;
+  const hasIsActive = typeof (editor as any).isActive === 'function';
+  // O(1): 直接通过父节点类型或激活的 mark/node 判断
+
+  return (
+    $from?.parent?.type?.name === 'codeBlock' ||
+    (hasIsActive && (editor as any).isActive('codeBlock')) ||
+    (hasIsActive && (editor as any).isActive('code'))
+  );
 }
-
 function isCodeLanguage(language: string): boolean {
   const codeLanguages = [
     'javascript',

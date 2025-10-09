@@ -7,7 +7,7 @@ interface AISuggestionPreviewProps {
   editor: any;
 }
 
-export default function AISuggestionPreview({
+export default React.memo(function AISuggestionPreview({
   editor,
 }: AISuggestionPreviewProps) {
   const bus = useMemo(() => AISuggestionBus.getInstance(), []);
@@ -132,4 +132,4 @@ export default function AISuggestionPreview({
       </Space>
     </div>
   );
-}
+});

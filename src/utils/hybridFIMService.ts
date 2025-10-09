@@ -69,8 +69,9 @@ export class HybridFIMService {
         //   fimModel: options.fimModel,
         // });
         // 直接使用 chatInEditor 作为主要方案
-        result = await this.promptFIMFillIn(prefix, suffix);
-        console.log('通义result', result);
+        // result = await this.promptFIMFillIn(prefix, suffix);
+
+        result = await chatInEditor({ prefix, suffix });
 
         this.performanceStats.realFIMCalls++;
         this.performanceStats.realFIMSuccess++;

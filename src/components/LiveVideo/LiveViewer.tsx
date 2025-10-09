@@ -6,24 +6,6 @@ export default function LiveViewer() {
   const [roomId, setRoomId] = useState('');
   const [isJoined, setIsJoined] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
-  //   const { joinRoom, leaveRoom, isConnected, viewers } = useWebRTC();
-
-  //   const handleJoinRoom = () => {
-  //     if (!roomId.trim()) {
-  //       message.error('请输入房间ID');
-  //       return;
-  //     }
-  //     joinRoom(roomId);
-  //     setIsJoined(true);
-  //   };
-
-  //   const handleLeaveRoom = () => {
-  //     leaveRoom();
-  //     setIsJoined(false);
-  //     if (videoRef.current) {
-  //       videoRef.current.srcObject = null;
-  //     }
-  //   };
 
   return (
     <div className="w-800 h-540 flex  justify-center items-center bg-black rounded-tl-5 rounded-tr-5 flex-col">

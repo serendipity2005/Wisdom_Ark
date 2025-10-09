@@ -1,17 +1,12 @@
-import MyHeader from '@/layouts/frontLayout/Header';
 import { createContext, useEffect, useRef, useState } from 'react';
-import VideoShow from '@/components/Live/VideoShow';
-import VideoItem from '@/components/Live/VideoItem';
-import { allVideoData } from '@/components/Live/VideoItem/videoData';
-import LivePull from '@/components/LiveVideo/LiveShow';
 import LiveFooter from '@/components/LiveVideo/LiveFooter/LiveFooter';
 import { Layout } from 'antd';
-import { Header, Content, Footer } from 'antd/es/layout/layout';
+import { Content, Footer } from 'antd/es/layout/layout';
 import Sider from 'antd/es/layout/Sider';
 import LiveShow from '@/components/LiveVideo/LiveShow';
 import { Rtc } from '@/utils/webrtc/rtc';
-import { getSelectOptions } from '@/utils/getSelectOptions';
 import { useStream } from '@/hooks/liveVideo/useStream';
+import DualVideoShow from '@/components/LiveVideo/DualVideoShow';
 const contentStyle: React.CSSProperties = {
   textAlign: 'center',
   height: '95%',
@@ -50,9 +45,10 @@ export interface currentDeviceInfo {
 }
 export interface DeviceInfo {
   enabled?: true;
-  id?: string;
+  id?: string; //deviceId
   kind?: 'audio' | 'video';
   label?: string;
+  deviceId?: string; //deviceId
 }
 
 export const Context = createContext<Rtc | null>(null);
@@ -65,9 +61,11 @@ export default function Live() {
     videoDisabled: false,
     dispalyEnabled: false,
   });
+  const [canSpeaking, setCanSpeaking] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
   // 本地流
   // const [stream, setStream] = useState<MediaStream | null>(null);
-  const { getCurrentDeviceInfo, stream } = useStream();
+  const { getCurrentDeviceInfo } = useStream();
 
   const rtc = useRef<Rtc>(null);
   if (!rtc.current) {
@@ -83,7 +81,6 @@ export default function Live() {
   const getcurrentDevices = async () => {
     // const res = await rtc.current!.getDevicesInfoList();
     const res = await getCurrentDeviceInfo();
-    console.log('当前设备', res);
     if (res) {
       res.videoIn.enabled = deviceInfo.videoDisabled;
       res.audioIn.enabled = deviceInfo.audioDisabled;
@@ -94,17 +91,73 @@ export default function Live() {
   useEffect(() => {
     getcurrentDevices();
   }, []);
+  useEffect(() => {
+    if (!rtc.current) return;
+    const handleScreenSharingChange = (value: boolean) => {
+      setIsScreenSharing(value);
+    };
 
+    rtc.current.on('screenSharingChange', handleScreenSharingChange);
+
+    return () => {
+      rtc.current?.off('screenSharingChange', handleScreenSharingChange);
+    };
+  }, []);
+
+  // livevideo.tsx（示例）
+  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [level, setLevel] = useState(0);
+
+  useEffect(() => {
+    const inst = rtc.current;
+    if (!inst) return;
+    if (!canSpeaking) return;
+    // 监测麦克风（或传入屏幕共享流 inst.getScreenStream()
+    try {
+      inst.on('microphoneStarted', () => {
+        inst.startAudioLevelMonitor(
+          undefined,
+          (lv, speaking) => {
+            setLevel(lv);
+            setIsSpeaking(speaking);
+          },
+          { threshold: 0.02, holdMs: 250, smoothing: 0.8 },
+        );
+      });
+    } catch (e) {
+      console.error(e);
+    }
+    return () => inst.stopAudioLevelMonitor();
+  }, [rtc, canSpeaking]);
   return (
     <Context.Provider value={rtc.current}>
       <Layout style={layoutStyle}>
         <Sider width="20%" style={siderStyle}></Sider>
         <Layout>
           <Content style={contentStyle}>
-            <LiveShow></LiveShow>
+            {/* 根据屏幕共享状态选择显示组件 */}
+            {isScreenSharing ? <DualVideoShow /> : <LiveShow />}
           </Content>
           <Footer style={footerStyle}>
-            <LiveFooter deviceInfo={deviceInfo}></LiveFooter>
+            <div>
+              {isSpeaking ? '正在说话' : '静音/无声'}
+              <div style={{ width: 100, height: 6, background: '#eee' }}>
+                <div
+                  style={{
+                    width: `${Math.min(level * 100, 100)}%`,
+                    height: 6,
+                    background: '#67c23a',
+                  }}
+                />
+              </div>
+            </div>
+            <LiveFooter
+              deviceInfo={deviceInfo}
+              updateDeviceInfo={(value) =>
+                setDeviceInfo((deviceInfo) => ({ ...deviceInfo, ...value }))
+              }
+              handleCanSpeaking={(value: boolean) => setCanSpeaking(value)}
+            />
           </Footer>
         </Layout>
       </Layout>

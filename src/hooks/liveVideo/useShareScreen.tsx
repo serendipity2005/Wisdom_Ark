@@ -9,43 +9,29 @@ export function useScreenShare() {
    * @param onStop 停止回调
    */
   const startScreenShare = async (
-    videoRef: React.RefObject<HTMLVideoElement | null>,
-    onStop?: () => void,
+    rtc: any, // 传入RTC实例
+    options?: {
+      preferCurrentTab?: boolean;
+      preferDisplaySurface?: 'monitor' | 'window' | 'browser';
+    },
   ) => {
     try {
-      const screenStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
-
+      await rtc.startScreenShare(options);
       setIsScreenSharing(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = screenStream;
-      }
-
-      screenStream.getVideoTracks()[0].addEventListener('ended', () => {
-        stopScreenShare(videoRef as React.RefObject<HTMLVideoElement>);
-        if (onStop) onStop();
-        message.info('屏幕共享已结束');
-      });
+      message.success('屏幕共享已开始');
     } catch (error) {
       console.error('共享屏幕失败:', error);
+      message.error('屏幕共享失败');
     }
   };
-  const stopScreenShare = (videoRef: React.RefObject<HTMLVideoElement>) => {
-    console.log('停止共享');
-
-    if (videoRef.current && videoRef.current.srcObject) {
-      const stream = videoRef.current.srcObject as MediaStream;
-      stream.getTracks().forEach((track) => {
-        if (track.readyState === 'live') {
-          track.stop();
-        }
-      });
-      videoRef.current.srcObject = null;
+  const stopScreenShare = (rtc: any) => {
+    try {
+      rtc.stopScreenShare();
+      setIsScreenSharing(false);
+      message.info('屏幕共享已停止');
+    } catch (error) {
+      console.error('停止屏幕共享失败:', error);
     }
-
-    setIsScreenSharing(false);
   };
   return {
     startScreenShare,

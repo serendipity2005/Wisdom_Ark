@@ -538,6 +538,8 @@ export const chatInEditor = async (content: {
     model: 'qwen2.5-coder-7b-instruct',
     prompt: `<|fim_prefix|>${prefix}<|fim_suffix|>${suffix}<|fim_middle|>`,
   });
+  console.log(completion.choices[0], 'completion.choices[0]');
+
   return completion.choices[0].text;
 
   return `
