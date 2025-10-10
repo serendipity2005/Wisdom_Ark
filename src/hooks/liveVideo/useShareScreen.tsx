@@ -21,6 +21,8 @@ export function useScreenShare() {
       setIsScreenSharing(true);
       if (videoRef.current) {
         videoRef.current.srcObject = screenStream;
+        // 确保视频能够自动播放
+        videoRef.current.play().catch(console.error);
       }
 
       screenStream.getVideoTracks()[0].addEventListener('ended', () => {

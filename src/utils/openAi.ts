@@ -66,7 +66,7 @@ class AIServiceManager {
   }
 
   // 启动健康检查
-  startHealthCheck(interval = 30000) {
+  startHealthCheck(interval = 60000 * 60 * 2) {
     this.performHealthCheck();
     this.healthCheckInterval = setInterval(() => {
       this.performHealthCheck();
@@ -201,7 +201,7 @@ class AIServiceManager {
 const aiServiceManager = new AIServiceManager(AI_SERVICES);
 
 // 启动健康检查（每30秒）
-aiServiceManager.startHealthCheck(30000);
+aiServiceManager.startHealthCheck(60000 * 60 * 2);
 
 // 监听服务切换
 aiServiceManager.onServiceChange((service) => {
@@ -247,12 +247,12 @@ export const chatWithGPT = async (
       role: 'system',
       content: `
         ## 角色
-        你是一个专业的前端导师，你最擅长React、Webpack、Antd这些前端框架，你能够由浅入深的回答用户关于前端的问题
+        你是一个专业的前端导师，你最擅长Vue、React、Webpack、Antd这些前端框架，你能够由浅入深的回答用户关于前端的问题
         ## 参考内容
         ${externalContent}
         ## 输出规范
         - 关于代码问题，你能够按照"设计思路"、"代码实现"两个维度来回答
-        - 跟编程无关的问题你可以拒绝回答
+        - 别的问题可以简单回答，但不要拒绝回答
         `,
     },
     ...recentMessages,
@@ -281,7 +281,7 @@ export const chatWithGPT = async (
       onServiceSwitch?.(currentService.name);
 
       const response = await currentService.client.chat.completions.create({
-        model: 'gpt-4o-mini',
+        model: currentService.model,
         messages: newMessages,
         stream: true, // 启用流式响应
         temperature: 0.7,
@@ -392,8 +392,6 @@ export const chatWithGPT = async (
       onComplete?.(fullResponse);
       return fullResponse;
     } catch (error) {
-      //   console.error('OpenAI API Error:', error);
-      //   return '发生错误，请重试';
       lastError = error;
       console.error(`❌ ${currentService.name} 请求失败:`, error);
 
@@ -416,4 +414,23 @@ export const chatWithGPT = async (
   const error = lastError || new Error('所有 AI 服务都失败了');
   onError?.(error);
   return '发生错误，所有 AI 服务暂时不可用，请稍后重试';
+};
+
+// ==================== 导出状态查询函数 ====================
+export const getAIServicesStatus = () => {
+  return aiServiceManager.getServicesStatus();
+};
+
+export const getCurrentAIService = () => {
+  const service = aiServiceManager.getCurrentService();
+  return service ? service.name : '无可用服务';
+};
+
+export const forceHealthCheck = () => {
+  return aiServiceManager.performHealthCheck();
+};
+
+// 清理函数（在应用卸载时调用）
+export const cleanup = () => {
+  aiServiceManager.stopHealthCheck();
 };

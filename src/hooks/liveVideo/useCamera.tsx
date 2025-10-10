@@ -16,6 +16,8 @@ export function useCamera() {
       setStream(mediaStream); //设置媒体流
       if (videoRef.current) {
         videoRef.current.srcObject = mediaStream;
+        // 确保视频能够自动播放
+        videoRef.current.play().catch(console.error);
         // 修改直播状态
         setIsLive(true);
       }

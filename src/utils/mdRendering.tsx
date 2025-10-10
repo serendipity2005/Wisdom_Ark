@@ -1,3 +1,87 @@
+// 常见编程语言配置
+const LANGUAGE_CONFIG: Record<
+  string,
+  { displayName: string; category: string; color: string }
+> = {
+  javascript: { displayName: 'JavaScript', category: 'web', color: '#f7df1e' },
+  typescript: { displayName: 'TypeScript', category: 'web', color: '#3178c6' },
+  jsx: { displayName: 'JSX', category: 'web', color: '#61dafb' },
+  tsx: { displayName: 'TSX', category: 'web', color: '#3178c6' },
+  python: { displayName: 'Python', category: 'backend', color: '#3776ab' },
+  java: { displayName: 'Java', category: 'backend', color: '#007396' },
+  cpp: { displayName: 'C++', category: 'system', color: '#00599c' },
+  c: { displayName: 'C', category: 'system', color: '#a8b9cc' },
+  csharp: { displayName: 'C#', category: 'backend', color: '#239120' },
+  go: { displayName: 'Go', category: 'backend', color: '#00add8' },
+  rust: { displayName: 'Rust', category: 'system', color: '#ce412b' },
+  php: { displayName: 'PHP', category: 'backend', color: '#777bb4' },
+  ruby: { displayName: 'Ruby', category: 'backend', color: '#cc342d' },
+  swift: { displayName: 'Swift', category: 'mobile', color: '#fa7343' },
+  kotlin: { displayName: 'Kotlin', category: 'mobile', color: '#7f52ff' },
+  html: { displayName: 'HTML', category: 'web', color: '#e34c26' },
+  css: { displayName: 'CSS', category: 'web', color: '#1572b6' },
+  scss: { displayName: 'SCSS', category: 'web', color: '#cc6699' },
+  sql: { displayName: 'SQL', category: 'database', color: '#00758f' },
+  shell: { displayName: 'Shell', category: 'script', color: '#89e051' },
+  bash: { displayName: 'Bash', category: 'script', color: '#4eaa25' },
+  json: { displayName: 'JSON', category: 'data', color: '#292929' },
+  yaml: { displayName: 'YAML', category: 'data', color: '#cb171e' },
+  xml: { displayName: 'XML', category: 'data', color: '#0060ac' },
+  markdown: { displayName: 'Markdown', category: 'markup', color: '#083fa1' },
+  text: { displayName: 'Plain Text', category: 'text', color: '#666666' },
+};
+
+// 获取语言信息
+function getLanguageInfo(lang: string): {
+  displayName: string;
+  category: string;
+  language: string;
+  color: string;
+} {
+  const normalizedLang = (lang || '').toLowerCase().trim();
+  const config = LANGUAGE_CONFIG[normalizedLang];
+
+  return {
+    language: normalizedLang || 'text',
+    displayName: config?.displayName || lang || 'Code',
+    category: config?.category || 'general',
+    color: config?.color || '#666666',
+  };
+}
+
+// 渲染代码块
+function renderCodeBlock(lang: string, code: string): string {
+  const langInfo = getLanguageInfo(lang);
+
+  const safeCode = String(code || '')
+    .trim()
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+  const langClass = langInfo.language ? `language-${langInfo.language}` : '';
+
+  // 根据语言类型应用不同的样式
+  const borderColor = langInfo.color;
+  const categoryBadge =
+    langInfo.category !== 'general'
+      ? `<span style="background: ${borderColor}20; color: ${borderColor}; padding: 2px 8px; border-radius: 3px; font-size: 10px; margin-left: 8px; font-weight: 500;">${langInfo.category}</span>`
+      : '';
+
+  return `<div class="code-block" data-language="${langInfo.language}" data-category="${langInfo.category}" style="margin: 16px 0; border-left: 3px solid ${borderColor};">
+    <div class="code-header" style="background: #f6f8fa; padding: 8px 16px; border-bottom: 1px solid #e1e4e8; display: flex; align-items: center; justify-content: space-between; border-radius: 6px 6px 0 0;">
+      <div style="display: flex; align-items: center;">
+        <span style="color: ${borderColor}; font-size: 12px; font-weight: 600; text-transform: uppercase;">${langInfo.displayName}</span>
+        ${categoryBadge}
+      </div>
+      <button class="code-copy-btn" onclick="copyCode(this)" style="background: white; border: 1px solid #e1e4e8; padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer; color: #586069; transition: all 0.2s;" onmouseover="this.style.background='#f6f8fa'" onmouseout="this.style.background='white'">复制</button>
+    </div>
+    <pre style="background: #f6f8fa; padding: 16px; border-radius: 0 0 6px 6px; overflow-x: auto; margin: 0; border: 1px solid #e1e4e8; border-top: none;"><code class="hljs ${langClass}" style="background: none; padding: 0; font-family: 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; line-height: 1.5; font-size: 14px; white-space: pre;">${safeCode}</code></pre>
+  </div>`;
+}
+
 export const mockMarked = {
   use: (config: null) => {
     mockMarked.config = config;
@@ -7,35 +91,17 @@ export const mockMarked = {
     const codeBlocks: string[] = [];
     const inlineCodes: string[] = [];
 
-    // 1. 处理代码块 - 必须最先处理，避免内容被其他规则影响
+    // 1. 处理代码块 - 使用新的渲染函数
     html = html.replace(
       /```(\w+)?\s*\n([\s\S]*?)\n```/g,
       (match: any, lang: any, code: any) => {
-        const safeCode = String(code || '')
-          .trim()
-          // 转义HTML特殊字符，防止被后续处理
-          .replace(/&/g, '&amp;')
-          .replace(/</g, '&lt;')
-          .replace(/>/g, '&gt;')
-          .replace(/"/g, '&quot;')
-          .replace(/'/g, '&#39;');
-
-        const langClass = lang ? `language-${lang}` : '';
-        const langLabel = lang
-          ? `<div style="color: #666; font-size: 12px; margin-bottom: 8px; font-weight: 500;">${lang}</div>`
-          : '';
-
         const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
-        codeBlocks.push(`<div class="code-block" style="margin: 16px 0;">
-        ${langLabel}
-        <pre style="background: #f6f8fa; padding: 16px; border-radius: 6px; overflow-x: auto; margin: 0; border: 1px solid #e1e4e8;"><code class="hljs ${langClass}" style="background: none; padding: 0; font-family: 'Fira Code', 'Monaco', 'Menlo', 'Ubuntu Mono', monospace; line-height: 1.5; font-size: 14px; white-space: pre;">${safeCode}</code></pre>
-      </div>`);
-
+        codeBlocks.push(renderCodeBlock(lang, code));
         return placeholder;
       },
     );
 
-    // 2. 处理行内代码 - 也需要保护
+    // 2. 处理行内代码
     html = html.replace(/`([^`\n]+)`/g, (match: any, code: any) => {
       const safeCode = String(code)
         .replace(/&/g, '&amp;')
@@ -109,7 +175,7 @@ export const mockMarked = {
       });
     }
 
-    // 7. 处理段落 - 改进算法
+    // 7. 处理段落
     const lines = html.split('\n');
     const paragraphs = [];
     let currentParagraph = [];
@@ -201,3 +267,31 @@ export const mockMarked = {
   },
   config: null,
 };
+
+// 复制代码功能（添加到全局）
+if (typeof window !== 'undefined') {
+  (window as any).copyCode = function (button: HTMLButtonElement) {
+    const codeBlock = button.closest('.code-block');
+    if (!codeBlock) return;
+
+    const code = codeBlock.querySelector('code')?.textContent || '';
+
+    navigator.clipboard
+      .writeText(code)
+      .then(() => {
+        const originalText = button.textContent;
+        button.textContent = '已复制！';
+
+        setTimeout(() => {
+          button.textContent = originalText;
+        }, 2000);
+      })
+      .catch((err) => {
+        console.error('复制失败:', err);
+        button.textContent = '复制失败';
+        setTimeout(() => {
+          button.textContent = '复制';
+        }, 2000);
+      });
+  };
+}

@@ -27,7 +27,7 @@ export default function LiveFooter(props: LiveFooterProps) {
   };
   const handleScreenShare = () => {
     return isScreenSharing
-      ? stopScreenShare(videoRef!)
+      ? stopScreenShare(videoRef)
       : startScreenShare(videoRef);
   };
   const handleCamera = () => {
