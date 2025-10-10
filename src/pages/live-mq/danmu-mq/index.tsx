@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Send, Settings, Pause, Play, Trash2 } from 'lucide-react';
 
 // 弹幕项接口
@@ -79,95 +79,89 @@ export default function DanmakuPlayer({
     tracksRef.current = new Array(trackCount).fill(false);
   }, [localConfig.fontSize, localConfig.area]);
 
-  // 添加外部弹幕
-  useEffect(() => {
-    if (danmakuList.length > 0) {
-      const newDanmaku = danmakuList[danmakuList.length - 1];
-      addDanmaku(newDanmaku);
-    }
-  }, [danmakuList]);
-
-  // 调试：监听数据变化
-  //   useEffect(() => {
-  //     if (personBounds) {
-  //       console.log('🎯 personBounds:', personBounds);
-  //     }
-  //     if (personMask) {
-  //       console.log(
-  //         '🎭 personMask 尺寸:',
-  //         personMask.width,
-  //         'x',
-  //         personMask.height,
-  //       );
-  //     }
-  //   }, [personBounds, personMask]);
-
-  //   useEffect(() => {
-  //     if (personMask) {
-  //       console.log(
-  //         '主组件 personMask:',
-  //         personMask.width,
-  //         'x',
-  //         personMask.height,
-  //       );
-  //       console.log('第一个像素 R值:', personMask.data[0]);
-  //     }
-  //   }, [personMask]);
-
   // 【核心修复】判断轨道是否与人像区域重叠（像素级检测）
-  const isTrackOverlappingPerson = (trackIndex: number): boolean => {
-    if (!personMask || !containerRef.current) return false;
+  const isTrackOverlappingPerson = useCallback(
+    (trackIndex: number): boolean => {
+      if (!personMask || !containerRef.current) return false;
 
-    const trackHeight = (localConfig.fontSize || 24) + 10;
-    const trackTop = trackIndex * trackHeight;
-    const trackBottom = trackTop + trackHeight;
+      const trackHeight = (localConfig.fontSize || 24) + 10;
+      const trackTop = trackIndex * trackHeight;
+      const trackBottom = trackTop + trackHeight;
 
-    const containerWidth = containerRef.current.offsetWidth;
-    const containerHeight = containerRef.current.offsetHeight;
+      const containerWidth = containerRef.current.offsetWidth;
+      const containerHeight = containerRef.current.offsetHeight;
 
-    // 🔑 关键修复：计算缩放比例
-    const scaleX = personMask.width / containerWidth;
-    const scaleY = personMask.height / containerHeight;
+      // 🔑 关键修复：计算缩放比例
+      const scaleX = personMask.width / containerWidth;
+      const scaleY = personMask.height / containerHeight;
 
-    // 采样检测（每隔几个像素检测一次，提高性能）
-    const sampleStep = 5;
+      // 采样检测（每隔几个像素检测一次，提高性能）
+      const sampleStep = 5;
+      let detectedPixels = 0;
 
-    for (
-      let y = trackTop;
-      y < trackBottom && y < containerHeight;
-      y += sampleStep
-    ) {
-      for (let x = 0; x < containerWidth; x += sampleStep) {
-        // 映射到 mask 坐标系
-        const maskX = Math.floor(x * scaleX);
-        const maskY = Math.floor(y * scaleY);
+      for (
+        let y = trackTop;
+        y < trackBottom && y < containerHeight;
+        y += sampleStep
+      ) {
+        for (let x = 0; x < containerWidth; x += sampleStep) {
+          // 映射到 mask 坐标系
+          const maskX = Math.floor(x * scaleX);
+          const maskY = Math.floor(y * scaleY);
 
-        // 确保不越界
-        if (maskX >= personMask.width || maskY >= personMask.height) continue;
+          // 确保不越界
+          if (maskX >= personMask.width || maskY >= personMask.height) continue;
 
-        // 🔑 关键修复：使用正确的索引计算
-        const maskIndex = (maskY * personMask.width + maskX) * 4;
+          // 🔑 关键修复：使用正确的索引计算
+          const maskIndex = (maskY * personMask.width + maskX) * 4;
 
-        // 检查 R 通道（人像区域为 255）
-        if (personMask.data[maskIndex] === 255) {
-          return true;
+          // 检查 R 通道（人像区域为 255）
+          if (personMask.data[maskIndex] === 255) {
+            detectedPixels++;
+            // 如果检测到足够的人像像素，直接返回 true
+            if (detectedPixels > 3) {
+              return true;
+            }
+          }
         }
       }
-    }
 
-    return false;
-  };
+      return false;
+    },
+    [personMask, localConfig.fontSize],
+  );
 
   // 获取可用轨道(避开人像区域)
-  const getAvailableTrack = (): number => {
-    if (localConfig.unlimited) {
-      return Math.floor(Math.random() * tracksRef.current.length);
-    }
-
+  const getAvailableTrack = useCallback((): number => {
     const blockedTracks = new Set<number>();
 
-    // 精确模式：使用 personMask 进行像素级检测
-    if (personMask && containerRef.current) {
+    // 矩形模式：使用 personBounds 进行矩形检测（推荐，性能好）
+    if (personBounds && containerRef.current) {
+      const containerHeight = containerRef.current.offsetHeight;
+      const trackHeight = (localConfig.fontSize || 24) + 10;
+
+      // 将百分比转换为像素
+      const personTopPx = (personBounds.top / 100) * containerHeight;
+      const personBottomPx = (personBounds.bottom / 100) * containerHeight;
+
+      // 计算被占用的轨道
+      const startTrack = Math.floor(personTopPx / trackHeight);
+      const endTrack = Math.floor(personBottomPx / trackHeight);
+
+      console.log(`🎯 人像占据轨道: ${startTrack} - ${endTrack}`);
+
+      // 添加边距，避免弹幕贴边
+      const margin = 2; // 增加边距
+      for (
+        let i = Math.max(0, startTrack - margin);
+        i <= Math.min(tracksRef.current.length - 1, endTrack + margin);
+        i++
+      ) {
+        blockedTracks.add(i);
+      }
+    }
+    // 精确模式：使用 personMask 进行像素级检测（可选）
+    else if (personMask && containerRef.current) {
       console.log('✅ 使用精准模式');
 
       for (let i = 0; i < tracksRef.current.length; i++) {
@@ -178,56 +172,35 @@ export default function DanmakuPlayer({
           if (i < tracksRef.current.length - 1) blockedTracks.add(i + 1);
         }
       }
-
-      console.log(`🚫 阻挡的轨道: ${Array.from(blockedTracks).join(', ')}`);
     }
-    // 矩形模式：使用 personBounds 进行矩形检测
-    else if (personBounds && containerRef.current) {
-      console.log('📦 使用矩形模式');
 
-      const containerHeight = containerRef.current.offsetHeight;
-      const trackHeight = (localConfig.fontSize || 24) + 10;
+    // 获取所有不在人像区域的轨道
+    const availableTracks = Array.from(
+      { length: tracksRef.current.length },
+      (_, i) => i,
+    ).filter((i) => !blockedTracks.has(i));
 
-      const displayAreaHeight =
-        containerHeight * ((localConfig.area || 100) / 100);
-      const personTopPx = (personBounds.top / 100) * containerHeight;
-      const personBottomPx = (personBounds.bottom / 100) * containerHeight;
-
-      if (personTopPx < displayAreaHeight) {
-        const startTrack = Math.floor(personTopPx / trackHeight);
-        const endTrack = Math.min(
-          Math.ceil(personBottomPx / trackHeight),
-          Math.floor(displayAreaHeight / trackHeight),
-        );
-
-        const margin = 1;
-        for (
-          let i = Math.max(0, startTrack - margin);
-          i <= Math.min(tracksRef.current.length - 1, endTrack + margin);
-          i++
-        ) {
-          blockedTracks.add(i);
-        }
+    // 如果无限模式，从可用轨道中随机选择
+    if (localConfig.unlimited) {
+      if (availableTracks.length > 0) {
+        const track =
+          availableTracks[Math.floor(Math.random() * availableTracks.length)];
+        return track;
+      } else {
+        // 如果没有可用轨道，强制选择第一个轨道
+        return 0;
       }
-
-      console.log(`🚫 阻挡的轨道: ${Array.from(blockedTracks).join(', ')}`);
     }
 
     // 优先选择未被占用且不在人像区域的轨道
     for (let i = 0; i < tracksRef.current.length; i++) {
       if (!tracksRef.current[i] && !blockedTracks.has(i)) {
-        console.log(`✅ 选择轨道 ${i}`);
         return i;
       }
     }
 
     // 如果没有完全空闲的轨道，选择不在人像区域的轨道
     if (localConfig.dense) {
-      const availableTracks = Array.from(
-        { length: tracksRef.current.length },
-        (_, i) => i,
-      ).filter((i) => !blockedTracks.has(i));
-
       if (availableTracks.length > 0) {
         const track =
           availableTracks[Math.floor(Math.random() * availableTracks.length)];
@@ -236,50 +209,71 @@ export default function DanmakuPlayer({
       }
     }
 
-    console.log('❌ 无可用轨道');
-    return -1;
-  };
+    // 最后的降级方案：如果所有轨道都被占用，强制选择不在人像区域的轨道
+    if (availableTracks.length > 0) {
+      const track =
+        availableTracks[Math.floor(Math.random() * availableTracks.length)];
+      return track;
+    }
+
+    return 0; // 最后的降级方案
+  }, [
+    personBounds,
+    personMask,
+    localConfig.unlimited,
+    localConfig.fontSize,
+    localConfig.dense,
+    isTrackOverlappingPerson,
+  ]);
 
   // 添加弹幕
-  const addDanmaku = (item: Partial<DanmakuItem>) => {
-    if (isPaused) return;
+  const addDanmaku = useCallback(
+    (item: Partial<DanmakuItem>) => {
+      if (isPaused) {
+        return;
+      }
 
-    const track = getAvailableTrack();
-    if (track === -1 && !localConfig.unlimited) {
-      console.log('⏭️ 弹幕被跳过（无可用轨道）');
-      return;
-    }
+      const track = getAvailableTrack();
 
-    const id = danmakuIdRef.current++;
-    const speed = item.speed || localConfig.speed || 5;
+      const id = danmakuIdRef.current++;
+      const speed = item.speed || localConfig.speed || 5;
 
-    const newDanmaku: DanmakuItem = {
-      id,
-      text: item.text || '',
-      color: item.color || '#FFFFFF',
-      fontSize: item.fontSize || localConfig.fontSize || 24,
-      speed,
-      avatar: item.avatar,
-      user: item.user,
-      track,
-    };
+      const newDanmaku: DanmakuItem = {
+        id,
+        text: item.text || '',
+        color: item.color || '#FFFFFF',
+        fontSize: item.fontSize || localConfig.fontSize || 24,
+        speed,
+        avatar: item.avatar,
+        user: item.user,
+        track,
+      };
 
-    setDanmakus((prev) => [...prev, newDanmaku]);
+      setDanmakus((prev) => [...prev, newDanmaku]);
 
-    // 标记轨道占用
-    if (track !== -1) {
-      tracksRef.current[track] = true;
+      // 标记轨道占用（只在非无限模式下）
+      if (!localConfig.unlimited) {
+        tracksRef.current[track] = true;
 
-      const duration = speed * 1000;
+        const duration = speed * 1000;
+        setTimeout(() => {
+          tracksRef.current[track] = false;
+          console.log(`🔄 释放轨道 ${track}`);
+        }, duration * 0.3);
+      }
+
       setTimeout(() => {
-        tracksRef.current[track] = false;
-      }, duration * 0.3);
-    }
-
-    setTimeout(() => {
-      setDanmakus((prev) => prev.filter((d) => d.id !== id));
-    }, speed * 1000);
-  };
+        setDanmakus((prev) => prev.filter((d) => d.id !== id));
+      }, speed * 1000);
+    },
+    [
+      isPaused,
+      getAvailableTrack,
+      localConfig.unlimited,
+      localConfig.speed,
+      localConfig.fontSize,
+    ],
+  );
 
   // 发送弹幕
   const handleSend = () => {
@@ -313,6 +307,34 @@ export default function DanmakuPlayer({
     tracksRef.current = tracksRef.current.map(() => false);
   };
 
+  // 添加外部弹幕
+  useEffect(() => {
+    if (danmakuList.length > 0) {
+      const newDanmaku = danmakuList[danmakuList.length - 1];
+      addDanmaku(newDanmaku);
+    }
+  }, [danmakuList, addDanmaku]); // 使用 addDanmaku 作为依赖
+
+  // 调试：监听数据变化
+  useEffect(() => {
+    // if (personBounds) {
+    // }
+    if (personMask && containerRef.current) {
+      // 检查 mask 数据是否有效
+      let whitePixels = 0;
+      for (let i = 0; i < personMask.data.length; i += 4) {
+        if (personMask.data[i] === 255) whitePixels++;
+      }
+
+      // 检查轨道数量
+      //   const trackCount = Math.floor(
+      //     (containerRef.current.offsetHeight * (localConfig.area || 100)) /
+      //       100 /
+      //       ((localConfig.fontSize || 24) + 10),
+      //   );
+    }
+  }, [personBounds, personMask, localConfig.area, localConfig.fontSize]);
+
   return (
     <div className={`${className}`} style={style}>
       {/* 弹幕显示区域 */}
@@ -321,6 +343,78 @@ export default function DanmakuPlayer({
         className="absolute inset-0 overflow-hidden pointer-events-none"
         style={{ opacity: (localConfig.opacity || 100) / 100 }}
       >
+        {/* 调试：显示人像区域和轨道 */}
+        {personBounds && containerRef.current && (
+          <div
+            className="absolute border-2 border-red-500 bg-red-500 bg-opacity-20"
+            style={{
+              left: `${personBounds.left}%`,
+              top: `${personBounds.top}%`,
+              width: `${personBounds.right - personBounds.left}%`,
+              height: `${personBounds.bottom - personBounds.top}%`,
+            }}
+          >
+            <div className="absolute -top-6 left-0 text-red-500 text-xs font-bold bg-black bg-opacity-50 px-1 rounded">
+              人像区域
+            </div>
+          </div>
+        )}
+
+        {/* 调试：显示轨道线 */}
+        {containerRef.current && (
+          <>
+            {Array.from({
+              length: Math.floor(
+                (containerRef.current.offsetHeight *
+                  (localConfig.area || 100)) /
+                  100 /
+                  ((localConfig.fontSize || 24) + 10),
+              ),
+            }).map((_, i) => {
+              // 检查轨道是否被阻挡
+              const isBlocked =
+                personBounds && containerRef.current
+                  ? (() => {
+                      const containerHeight =
+                        containerRef.current?.offsetHeight || 0;
+                      const trackHeight = (localConfig.fontSize || 24) + 10;
+                      const personTopPx =
+                        (personBounds.top / 100) * containerHeight;
+                      const personBottomPx =
+                        (personBounds.bottom / 100) * containerHeight;
+                      const startTrack = Math.floor(personTopPx / trackHeight);
+                      const endTrack = Math.floor(personBottomPx / trackHeight);
+                      const margin = 2;
+                      return (
+                        i >= Math.max(0, startTrack - margin) &&
+                        i <=
+                          Math.min(
+                            tracksRef.current.length - 1,
+                            endTrack + margin,
+                          )
+                      );
+                    })()
+                  : false;
+
+              return (
+                <div
+                  key={i}
+                  className={`absolute w-full border-t ${isBlocked ? 'border-red-500 border-opacity-60' : 'border-blue-500 border-opacity-30'}`}
+                  style={{
+                    top: `${i * ((localConfig.fontSize || 24) + 10)}px`,
+                  }}
+                >
+                  <span
+                    className={`absolute -left-8 -top-1 text-xs bg-black bg-opacity-50 px-1 rounded ${isBlocked ? 'text-red-400' : 'text-blue-400'}`}
+                  >
+                    {i}
+                    {isBlocked ? '🚫' : ''}
+                  </span>
+                </div>
+              );
+            })}
+          </>
+        )}
         {danmakus.map((danmaku) => (
           <div
             key={danmaku.id}

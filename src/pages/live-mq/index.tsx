@@ -17,10 +17,6 @@ import {
   Activity,
   Maximize2,
   ListTree,
-  Send,
-  Pause,
-  Play,
-  Trash2,
 } from 'lucide-react';
 // import * as poseDetection from '@tensorflow-models/pose-detection';
 import '@tensorflow/tfjs-backend-webgl';
@@ -67,7 +63,7 @@ export default function WebRTCDesktopStudio() {
   const [bitrate, setBitrate] = useState(3500); // 当前选择的视频码率
   const [fps, setFps] = useState(30); // 当前选择的帧率
   const [audioLevel, setAudioLevel] = useState(0); // 当前音频电平
-  const [networkQuality, setNetworkQuality] = useState('excellent'); // 当前网络质量
+  const [networkQuality] = useState('excellent'); // 当前网络质量
   const [cpuUsage, setCpuUsage] = useState(0); // 当前CPU使用率
   const [isSidebar, setIsSidebar] = useState(true); // 是否显示右侧边栏
   const [isDanmu, setIsDanmu] = useState(false); // 是否显示弹幕
@@ -221,94 +217,9 @@ export default function WebRTCDesktopStudio() {
     }
   }, [isMicOn]);
 
-  // 实时处理人像分割
-  //   const processSegmentation = async () => {
-  //     if (!segmenter || !videoRef.current || !canvasRef.current) return;
-
-  //     const video = videoRef.current;
-  //     const canvas = canvasRef.current;
-  //     const ctx = canvas.getContext('2d');
-  //     if (!ctx) return;
-
-  //     // 🧩 加入防御：video 未准备好时直接返回
-  //     if (video.videoWidth === 0 || video.videoHeight === 0) {
-  //       requestAnimationFrame(processSegmentation);
-  //       return;
-  //     }
-
-  //     // 🧩 自动同步 canvas 尺寸
-  //     if (
-  //       canvas.width !== video.videoWidth ||
-  //       canvas.height !== video.videoHeight
-  //     ) {
-  //       canvas.width = video.videoWidth;
-  //       canvas.height = video.videoHeight;
-  //     }
-
-  //     const segmentation = await segmenter.segmentPeople(video);
-
-  //     // 生成掩码（人像白色，背景透明）
-  //     const maskImageData = await bodySegmentation.toBinaryMask(
-  //       segmentation,
-  //       //   { r: 0, g: 0, b: 0, a: 0 },
-  //       // { r: 255, g: 255, b: 255, a: 255 },
-  //       { r: 255, g: 255, b: 255, a: 255 }, // 人像区域 - 白色不透明
-  //       { r: 0, g: 0, b: 0, a: 0 }, // 背景区域 - 透明
-  //     );
-
-  //     const offscreenCanvas = document.createElement('canvas');
-  //     offscreenCanvas.width = canvas.width;
-  //     offscreenCanvas.height = canvas.height;
-  //     const offscreenCtx = offscreenCanvas.getContext('2d');
-  //     if (!offscreenCtx) return;
-
-  //     offscreenCtx.putImageData(maskImageData, 0, 0);
-  //     // ctx.clearRect(0, 0, canvas.width, canvas.height);
-  //     // 清除画布并填充黑色背景
-  //     // ctx.fillStyle = 'black';
-  //     // ---------------------
-
-  //     // ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  //     // ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  //     // ctx.globalCompositeOperation = 'destination-in';
-  //     // ctx.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
-  //     // ctx.globalCompositeOperation = 'source-over';
-
-  //     // requestAnimationFrame(processSegmentation);
-
-  //     // 绘制背景图片
-  //     const backgroundImage = new Image();
-  //     backgroundImage.src = '/public/logo.png'; // 替换为您的背景图片路径
-  //     backgroundImage.onload = () => {
-  //       // 绘制背景图片并填充整个画布
-  //       ctx.drawImage(backgroundImage, 0, 0, canvas.width, canvas.height);
-  //       // 绘制原始视频
-  //       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-  //       // 使用 "destination-in" 模式，只保留人像区域
-  //       ctx.globalCompositeOperation = 'destination-in';
-  //       ctx.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
-
-  //       // 恢复默认合成模式
-  //       ctx.globalCompositeOperation = 'source-over';
-
-  //       requestAnimationFrame(processSegmentation);
-  //     };
-
-  //     backgroundImage.onerror = () => {
-  //       // 如果背景图片加载失败，则使用黑色背景
-  //       ctx.fillStyle = 'black';
-  //       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-  //       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  //       ctx.globalCompositeOperation = 'destination-in';
-  //       ctx.drawImage(offscreenCanvas, 0, 0, canvas.width, canvas.height);
-  //       ctx.globalCompositeOperation = 'source-over';
-
-  //       requestAnimationFrame(processSegmentation);
-  //     };
-  //   };
+  useEffect(() => {
+    console.log('主组件 personBounds 更新:', personBounds);
+  }, [personBounds]);
 
   // 在组件加载时预加载背景图
   useEffect(() => {
@@ -318,6 +229,7 @@ export default function WebRTCDesktopStudio() {
     img.onerror = () => console.error('背景图加载失败');
   }, []);
 
+  // 实时处理人像分割
   const processSegmentation = async () => {
     if (!segmenter || !videoRef.current || !canvasRef.current) return;
 
@@ -372,12 +284,28 @@ export default function WebRTCDesktopStudio() {
 
     // 更新人像边界
     if (maxX > minX && maxY > minY) {
-      setPersonBounds({
+      const newBounds = {
         left: (minX / canvas.width) * 100,
         right: (maxX / canvas.width) * 100,
         top: (minY / canvas.height) * 100,
         bottom: (maxY / canvas.height) * 100,
-      });
+      };
+
+      // 只有当边界有明显变化时才更新，避免频繁更新
+      if (
+        !personBounds ||
+        Math.abs(newBounds.top - personBounds.top) > 1 ||
+        Math.abs(newBounds.bottom - personBounds.bottom) > 1 ||
+        Math.abs(newBounds.left - personBounds.left) > 1 ||
+        Math.abs(newBounds.right - personBounds.right) > 1
+      ) {
+        setPersonBounds(newBounds);
+      }
+    } else {
+      // 如果没有检测到人像，清除边界
+      if (personBounds) {
+        setPersonBounds(null);
+      }
     }
 
     // === 关键修改：创建掩码画布 ===
