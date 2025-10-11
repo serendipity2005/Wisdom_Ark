@@ -258,7 +258,7 @@ export default function DanmakuPlayer({
         const duration = speed * 1000;
         setTimeout(() => {
           tracksRef.current[track] = false;
-          console.log(`🔄 释放轨道 ${track}`);
+          //   console.log(`🔄 释放轨道 ${track}`);
         }, duration * 0.3);
       }
 

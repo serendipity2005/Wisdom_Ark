@@ -33,17 +33,6 @@ interface DanmakuItem {
   user?: string;
 }
 
-// const model = bodySegmentation.SupportedModels.MediaPipeSelfieSegmentation;
-// const segmenterConfig = {
-//   runtime: 'mediapipe' as const, // or 'tfjs'
-//   solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation',
-//   modelType: 'general' as const,
-// };
-// const segmenter = await bodySegmentation.createSegmenter(
-//   model,
-//   segmenterConfig,
-// );
-
 export default function WebRTCDesktopStudio() {
   const [isStreaming, setIsStreaming] = useState(false); // 是否正在直播
   const [isCameraOn, setIsCameraOn] = useState(false); // 是否打开摄像头
@@ -69,6 +58,9 @@ export default function WebRTCDesktopStudio() {
   const [isDanmu, setIsDanmu] = useState(false); // 是否显示弹幕
   const [personMask, setPersonMask] = useState<ImageData | null>(null);
 
+  const [publisher, setPublisher] = useState<WebRTCPublisher | null>(null);
+  const [streamStats, setStreamStats] = useState<any>(null);
+
   const [segmenter, setSegmenter] =
     useState<bodySegmentation.BodySegmenter | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null); // 视频元素
@@ -90,6 +82,226 @@ export default function WebRTCDesktopStudio() {
     left: number;
     right: number;
   } | null>(null);
+
+  // WebRTC 推流管理类
+  class WebRTCPublisher {
+    private pc: RTCPeerConnection | null = null;
+    private ws: WebSocket | null = null;
+    private streamKey: string;
+
+    constructor(streamKey: string) {
+      this.streamKey = streamKey;
+    }
+
+    // 初始化 WebRTC 连接
+    async connect(signalingServerUrl: string) {
+      // 1. 建立信令服务器 WebSocket 连接
+      this.ws = new WebSocket(signalingServerUrl);
+
+      this.ws.onopen = () => {
+        console.log('✅ 信令服务器连接成功');
+        this.authenticate();
+      };
+
+      this.ws.onmessage = async (event) => {
+        const message = JSON.parse(event.data);
+        await this.handleSignalingMessage(message);
+      };
+
+      this.ws.onerror = (error) => {
+        console.error('❌ 信令服务器错误:', error);
+      };
+
+      // 2. 创建 RTCPeerConnection
+      this.pc = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          // 生产环境需要配置 TURN 服务器
+          // {
+          //   urls: 'turn:your-turn-server.com:3478',
+          //   username: 'user',
+          //   credential: 'pass'
+          // }
+        ],
+      });
+
+      // 监听 ICE 候选
+      this.pc.onicecandidate = (event) => {
+        if (event.candidate) {
+          this.sendMessage({
+            type: 'ice-candidate',
+            candidate: event.candidate,
+            streamKey: this.streamKey,
+          });
+        }
+      };
+
+      // 监听连接状态
+      this.pc.onconnectionstatechange = () => {
+        console.log('连接状态:', this.pc?.connectionState);
+      };
+
+      // 监听 ICE 连接状态
+      this.pc.oniceconnectionstatechange = () => {
+        console.log('ICE 状态:', this.pc?.iceConnectionState);
+      };
+    }
+
+    // 身份验证
+    private authenticate() {
+      this.sendMessage({
+        type: 'auth',
+        streamKey: this.streamKey,
+        protocol: 'webrtc',
+      });
+    }
+
+    // 添加媒体流
+    async addTracks(streams: {
+      video?: MediaStream;
+      audio?: MediaStream;
+      screen?: MediaStream;
+    }) {
+      if (!this.pc) throw new Error('PeerConnection 未初始化');
+
+      // 添加视频轨道
+      if (streams.video) {
+        streams.video.getVideoTracks().forEach((track) => {
+          this.pc!.addTrack(track, streams.video!);
+          console.log('✅ 视频轨道已添加');
+        });
+      }
+
+      // 添加屏幕共享轨道
+      if (streams.screen) {
+        streams.screen.getVideoTracks().forEach((track) => {
+          this.pc!.addTrack(track, streams.screen!);
+          console.log('✅ 屏幕轨道已添加');
+        });
+      }
+
+      // 添加音频轨道
+      if (streams.audio) {
+        streams.audio.getAudioTracks().forEach((track) => {
+          this.pc!.addTrack(track, streams.audio!);
+          console.log('✅ 音频轨道已添加');
+        });
+      }
+
+      // 创建 Offer
+      const offer = await this.pc.createOffer({
+        offerToReceiveAudio: false,
+        offerToReceiveVideo: false,
+      });
+
+      await this.pc.setLocalDescription(offer);
+
+      // 发送 SDP Offer 到服务器
+      this.sendMessage({
+        type: 'offer',
+        sdp: offer,
+        streamKey: this.streamKey,
+      });
+    }
+
+    // 处理信令消息
+    private async handleSignalingMessage(message: any) {
+      if (!this.pc) return;
+
+      switch (message.type) {
+        case 'answer':
+          // 收到 SDP Answer
+          await this.pc.setRemoteDescription(
+            new RTCSessionDescription({
+              type: message.type,
+              sdp: message.sdp,
+            }),
+          );
+          console.log('✅ SDP Answer 已设置');
+          break;
+
+        case 'ice-candidate':
+          // 收到 ICE 候选
+          if (message.candidate) {
+            await this.pc.addIceCandidate(
+              new RTCIceCandidate(message.candidate),
+            );
+            console.log('✅ ICE 候选已添加');
+          }
+          break;
+
+        case 'error':
+          console.error('❌ 服务器错误:', message.error);
+          break;
+      }
+    }
+
+    // 发送信令消息
+    private sendMessage(message: any) {
+      if (this.ws?.readyState === WebSocket.OPEN) {
+        this.ws.send(JSON.stringify(message));
+      }
+    }
+
+    // 获取统计信息
+    async getStats() {
+      if (!this.pc) return null;
+
+      const stats = await this.pc.getStats();
+      const result: any = {
+        video: {},
+        audio: {},
+        network: {},
+      };
+
+      stats.forEach((report) => {
+        if (report.type === 'outbound-rtp') {
+          if (report.kind === 'video') {
+            result.video = {
+              bytesSent: report.bytesSent,
+              packetsSent: report.packetsSent,
+              framesEncoded: report.framesEncoded,
+              framesSent: report.framesSent,
+              keyFramesEncoded: report.keyFramesEncoded,
+              totalEncodeTime: report.totalEncodeTime,
+              qualityLimitationReason: report.qualityLimitationReason,
+            };
+          } else if (report.kind === 'audio') {
+            result.audio = {
+              bytesSent: report.bytesSent,
+              packetsSent: report.packetsSent,
+            };
+          }
+        }
+
+        if (report.type === 'candidate-pair' && report.state === 'succeeded') {
+          result.network = {
+            currentRoundTripTime: report.currentRoundTripTime,
+            availableOutgoingBitrate: report.availableOutgoingBitrate,
+            bytesSent: report.bytesSent,
+            bytesReceived: report.bytesReceived,
+          };
+        }
+      });
+
+      return result;
+    }
+
+    // 断开连接
+    disconnect() {
+      if (this.pc) {
+        this.pc.close();
+        this.pc = null;
+      }
+
+      if (this.ws) {
+        this.ws.close();
+        this.ws = null;
+      }
+
+      console.log('🔌 WebRTC 连接已断开');
+    }
+  }
 
   // 同步视频流到视频元素
   useEffect(() => {
@@ -514,7 +726,7 @@ export default function WebRTCDesktopStudio() {
   };
 
   // 直播状态
-  const toggleStreaming = () => {
+  const toggleStreaming = async () => {
     if (!isStreaming) {
       if (!isCameraOn && !isScreenSharing) {
         alert('请先开启摄像头或屏幕共享');
@@ -522,19 +734,50 @@ export default function WebRTCDesktopStudio() {
       }
       setIsStreaming(true);
       console.log('直播已开始');
+      try {
+        // 创建发布器
+        const streamKey = 'your-stream-key'; // 从服务器获取
+        const pub = new WebRTCPublisher(streamKey);
+
+        // 连接到信令服务器
+        await pub.connect('ws://localhost:8080');
+
+        // 添加媒体轨道
+        await pub.addTracks({
+          video: cameraStreamRef.current || undefined,
+          audio: audioStreamRef.current || undefined,
+          screen: screenStreamRef.current || undefined,
+        });
+
+        setPublisher(pub);
+        setIsStreaming(true);
+
+        // 定时获取统计信息
+        const statsInterval = setInterval(async () => {
+          const stats = await pub.getStats();
+          setStreamStats(stats);
+          console.log('📊 推流统计:', stats);
+        }, 1000);
+
+        // 保存 interval ID 用于清理
+        (pub as any).statsInterval = statsInterval;
+      } catch (error) {
+        console.error('❌ 推流启动失败:', error);
+        alert('推流启动失败: ' + error);
+      }
     } else {
-      if (cameraStreamRef.current) {
-        cameraStreamRef.current.getTracks().forEach((track) => track.stop());
-        cameraStreamRef.current = null;
+      // 停止直播
+      if (publisher) {
+        clearInterval((publisher as any).statsInterval);
+        publisher.disconnect();
+        setPublisher(null);
       }
-      if (screenStreamRef.current) {
-        screenStreamRef.current.getTracks().forEach((track) => track.stop());
-        screenStreamRef.current = null;
-      }
-      if (audioStreamRef.current) {
-        audioStreamRef.current.getTracks().forEach((track) => track.stop());
-        audioStreamRef.current = null;
-      }
+
+      // 停止所有媒体流
+      [cameraStreamRef, screenStreamRef, audioStreamRef].forEach((ref) => {
+        ref.current?.getTracks().forEach((track) => track.stop());
+        ref.current = null;
+      });
 
       setIsStreaming(false);
       setIsCameraOn(false);
@@ -587,14 +830,8 @@ export default function WebRTCDesktopStudio() {
     return () => clearInterval(interval);
   }, []);
 
-  // 在 WebRTCDesktopStudio 组件中添加
-  //   useEffect(() => {
-  //     console.log('人像边界更新:', personBounds);
-  //   }, [personBounds]);
-
   const handleSendDanmaku = (text: string) => {
     console.log('发送弹幕:', text);
-    // 这里可以发送到服务器
   };
 
   return (
