@@ -51,22 +51,22 @@ const AI_SERVICES: AIServiceConfig[] = [
     lastCheck: null,
     lastSuccess: null,
   },
-  {
-    id: 'backup2',
-    name: 'deepseek',
-    priority: 3,
-    client: new OpenAI({
-      apiKey: 'sk-529ce6e9488446a59323d1950ea1dc8a',
-      baseURL: 'https://api.deepseek.com',
-      dangerouslyAllowBrowser: true,
-    }),
-    model: 'gpt-4o-mini',
-    status: 'checking',
-    responseTime: null,
-    consecutiveFailures: 0,
-    lastCheck: null,
-    lastSuccess: null,
-  },
+  // {
+  //   id: 'backup2',
+  //   name: 'deepseek',
+  //   priority: 3,
+  //   client: new OpenAI({
+  //     apiKey: 'sk-529ce6e9488446a59323d1950ea1dc8a',
+  //     baseURL: 'https://api.deepseek.com',
+  //     dangerouslyAllowBrowser: true,
+  //   }),
+  //   model: 'gpt-4o-mini',
+  //   status: 'checking',
+  //   responseTime: null,
+  //   consecutiveFailures: 0,
+  //   lastCheck: null,
+  //   lastSuccess: null,
+  // },
 ];
 
 // ==================== 服务管理器 ====================
@@ -217,7 +217,7 @@ class AIServiceManager {
 const aiServiceManager = new AIServiceManager(AI_SERVICES);
 
 // 启动健康检查（每30秒）
-aiServiceManager.startHealthCheck(30000);
+aiServiceManager.startHealthCheck(60000 * 60 * 24);
 
 // 监听服务切换
 aiServiceManager.onServiceChange((service) => {

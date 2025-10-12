@@ -27,3 +27,21 @@ dist-ssr
 
 # Authentication tokens
 .npmrc
+# ========================================
+# 虚拟化技术文档（不提交）
+# ========================================
+# 英文命名
+VIRTUALIZATION*.md
+*VIRTUALIZATION*.md
+VIRTUAL*.md
+DEBUG*.md
+CONTENT_VISIBILITY_AUTO_方案.md
+NODE*.md
+yuque.md
+QUICK_START.md
+OPTIMIZATION_SUMMARY.md
+VIRTUALIZATION_OPTIMIZATION_GUIDE.md
+yuque.tsx
+# 中文命名
+*虚拟化*.md
+虚拟化*.md

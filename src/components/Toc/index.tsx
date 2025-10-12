@@ -2,8 +2,6 @@ import { TextSelection } from '@tiptap/pm/state';
 import Editor from '../../pages/editor';
 
 export const ToCItem = ({ item, onItemClick }) => {
-  console.log(item);
-
   return (
     // item.isActive && !item.isScrolledOver
     <div
@@ -51,10 +49,8 @@ export const Toc = ({ items = [], editor }) => {
         return hasOverflow;
       };
 
-      const scrollContainer = isScrollable(
-        editor.view.dom.closest('.ant-layout-content'),
-      )
-        ? editor.view.dom.closest('.ant-layout-content')
+      const scrollContainer = isScrollable(editor.view.dom.closest('#tiptap'))
+        ? editor.view.dom.closest('#tiptap')
         : window;
       // const scrollContainer = editor.view.dom.closest('.ant-layout-content')
 

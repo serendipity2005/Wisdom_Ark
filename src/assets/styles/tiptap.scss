@@ -2,6 +2,194 @@
   padding: 10px;
   min-height: 500px;
   font-size: 1rem;
+  width: 100%;
+
+  /* 🔥 混合虚拟化方案：content-visibility + Decoration 标记 */
+  > * {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 80px; /* 预估高度 80px，浏览器自动记住真实高度 */
+  }
+
+  /* 🎯 针对不同类型的块优化预估高度 */
+  > p {
+    contain-intrinsic-size: auto 60px;
+  }
+
+  > h1 {
+    contain-intrinsic-size: auto 80px;
+  }
+
+  > h2 {
+    contain-intrinsic-size: auto 70px;
+  }
+
+  > h3,
+  > h4,
+  > h5,
+  > h6 {
+    contain-intrinsic-size: auto 60px;
+  }
+
+  > pre {
+    contain-intrinsic-size: auto 200px;
+  }
+
+  > blockquote {
+    contain-intrinsic-size: auto 100px;
+  }
+
+  > ul,
+  > ol {
+    contain-intrinsic-size: auto 120px;
+  }
+
+  > table {
+    contain-intrinsic-size: auto 300px;
+  }
+
+  > .image-wrapper,
+  > div[data-type='image'] {
+    contain-intrinsic-size: auto 400px;
+  }
+
+  /* 🔥 VirtualScroll 插件的虚拟化标记（与 Decoration 配合） */
+  .virtual-hidden {
+    /* 核心策略：完全隐藏内容渲染，只保留占位空间 */
+    content-visibility: hidden !important; /* 强制不渲染内容 */
+    contain: strict; /* 严格隔离（layout + paint + size） */
+
+    /* 清空所有视觉内容 */
+    font-size: 0 !important;
+    line-height: 0 !important;
+    color: transparent !important;
+    overflow: hidden !important;
+
+    /* 隐藏所有子元素（防止 DOM 渲染） */
+    > *,
+    * {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* 清空伪元素 */
+    &::before,
+    &::after {
+      content: '' !important;
+      display: none !important;
+    }
+
+    /* 🎯 关键修复：防止滚动条跳动 */
+    /* min-height 和 height 由 Decoration 的 style 属性动态设置 */
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important; /* 防止 flex 布局下被压缩 */
+  }
+
+  /* 🔧 可视化调试模式（enableVisualDebug: true） */
+  .virtual-debug {
+    &[data-virtualized='true'] {
+      /* 虚拟化块：红色边框 */
+      outline: 2px dashed rgba(255, 77, 79, 0.6) !important;
+      outline-offset: -2px;
+      background: repeating-linear-gradient(
+        45deg,
+        rgba(255, 77, 79, 0.05) 0px,
+        rgba(255, 77, 79, 0.05) 10px,
+        rgba(255, 77, 79, 0.1) 10px,
+        rgba(255, 77, 79, 0.1) 20px
+      ) !important;
+    }
+  }
+
+  [data-virtualized='false'] {
+    /* 真实渲染块：绿色边框（仅调试模式） */
+    &.virtual-debug {
+      outline: 2px solid rgba(82, 196, 26, 0.4) !important;
+      outline-offset: -2px;
+    }
+  }
+
+  /* ❌ 旧的虚拟化样式（已废弃，保留用于对比） */
+  .virtual-hidden-deprecated {
+    /* 核心策略：完全隐藏内容，只保留占位空间 */
+
+    /* 方法1：清空文本内容（最彻底） */
+    font-size: 0 !important;
+    line-height: 0 !important;
+    color: transparent !important;
+    text-indent: -9999px !important;
+    overflow: hidden !important;
+
+    /* 方法2：隐藏所有子元素和文本节点 */
+    visibility: hidden !important;
+
+    /* 方法3：强制最小高度（使用 data 属性） */
+    min-height: attr(data-virtual-height px, 80px) !important;
+    max-height: attr(data-virtual-height px, 80px) !important;
+
+    /* 移除所有子元素（防止渲染） */
+    > *,
+    * {
+      display: none !important;
+      visibility: hidden !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    /* 清空伪元素 */
+    &::before,
+    &::after {
+      content: '' !important;
+      display: none !important;
+    }
+
+    /* 性能优化：CSS Containment */
+    contain: strict;
+    content-visibility: hidden;
+
+    /* 防止内容溢出 */
+    white-space: nowrap;
+    text-overflow: clip;
+
+    /* 调试模式：显示占位符背景 */
+    &[data-cached='false'] {
+      /* 未缓存：使用预估高度，浅灰色背景 */
+      background: repeating-linear-gradient(
+        90deg,
+        #fafafa 0px,
+        #fafafa 20px,
+        #f5f5f5 20px,
+        #f5f5f5 40px
+      ) !important;
+      border-left: 2px solid #e0e0e0 !important;
+      /* 恢复可见性以显示背景 */
+      visibility: visible !important;
+    }
+
+    &[data-cached='true'] {
+      /* 已缓存：使用真实高度，深灰色背景 */
+      background: repeating-linear-gradient(
+        90deg,
+        #f5f5f5 0px,
+        #f5f5f5 20px,
+        #f0f0f0 20px,
+        #f0f0f0 40px
+      ) !important;
+      border-left: 2px solid #d0d0d0 !important;
+      /* 恢复可见性以显示背景 */
+      visibility: visible !important;
+    }
+
+    /* 生产模式：移除调试背景（取消注释下面的代码） */
+    /*
+    &[data-cached="false"],
+    &[data-cached="true"] {
+      background: transparent !important;
+      border-left: none !important;
+    }
+    */
+  }
   ul,
   ol {
     margin-left: 10px;
@@ -218,62 +406,62 @@
   box-shadow: 0 2px 8px rgba(0, 123, 255, 0.2);
 }
 /* 虚拟化占位符样式 */
-.virtual-block-placeholder {
-  transition: all 0.3s ease;
-  cursor: pointer;
+// .virtual-block-placeholder {
+//   transition: all 0.3s ease;
+//   cursor: pointer;
 
-  &:hover {
-    background: #fafafa !important;
-    border-color: #40a9ff !important;
-    color: #40a9ff !important;
-  }
-}
+//   &:hover {
+//     background: #fafafa !important;
+//     border-color: #40a9ff !important;
+//     color: #40a9ff !important;
+//   }
+// }
 
-/* 被虚拟化/非虚拟化节点的可视化标记（仅调试观感，不影响布局） */
-[data-block-id] {
-  outline: 1px dashed rgba(24, 144, 255, 0.15);
-  outline-offset: -1px;
-}
+// /* 被虚拟化/非虚拟化节点的可视化标记（仅调试观感，不影响布局） */
+// [data-block-id] {
+//   outline: 1px dashed rgba(24, 144, 255, 0.15);
+//   outline-offset: -1px;
+// }
 
-[data-virtualized='true'] {
-  outline-color: rgba(255, 77, 79, 0.45) !important;
-}
-[data-virtualized='false'] {
-  outline-color: rgba(82, 196, 26, 0.35) !important;
-}
+// [data-virtualized='true'] {
+//   outline-color: rgba(255, 77, 79, 0.45) !important;
+// }
+// [data-virtualized='false'] {
+//   outline-color: rgba(82, 196, 26, 0.35) !important;
+// }
 
-/* 懒加载图片样式 */
-.lazy-image {
-  opacity: 0;
-  transition: opacity 0.3s ease-in;
+// /* 懒加载图片样式 */
+// .lazy-image {
+//   opacity: 0;
+//   transition: opacity 0.3s ease-in;
 
-  &.loaded {
-    opacity: 1;
-  }
+//   &.loaded {
+//     opacity: 1;
+//   }
 
-  &.error {
-    opacity: 0.5;
-    border: 2px dashed #ff4d4f;
-  }
-}
+//   &.error {
+//     opacity: 0.5;
+//     border: 2px dashed #ff4d4f;
+//   }
+// }
 
-/* 性能优化：减少重绘 */
-.ProseMirror {
-  will-change: transform;
-  contain: layout style paint;
-}
+// /* 性能优化：减少重绘 */
+// .ProseMirror {
+//   will-change: transform;
+//   contain: layout style paint;
+// }
 
-/* 大型节点优化 */
-.ProseMirror {
-  table {
-    contain: layout;
-  }
+// /* 大型节点优化 */
+// .ProseMirror {
+//   table {
+//     contain: layout;
+//   }
 
-  pre {
-    contain: layout style;
-  }
+//   pre {
+//     contain: layout style;
+//   }
 
-  p {
-    contain: layout style;
-  }
-}
+//   p {
+//     contain: layout style;
+//   }
+// }
