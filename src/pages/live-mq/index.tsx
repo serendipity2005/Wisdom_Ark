@@ -34,54 +34,42 @@ interface DanmakuItem {
 }
 
 export default function WebRTCDesktopStudio() {
-  const [isStreaming, setIsStreaming] = useState(false); // 是否正在直播
-  const [isCameraOn, setIsCameraOn] = useState(false); // 是否打开摄像头
-  const [isMicOn, setIsMicOn] = useState(false); // 是否打开麦克风
-  const [isScreenSharing, setIsScreenSharing] = useState(false); // 是否正在共享屏幕
-  const [viewerCount, setViewerCount] = useState(0); // 当前直播的观众数
-  const [streamDuration, setStreamDuration] = useState(0); // 当前直播时长
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [isCameraOn, setIsCameraOn] = useState(false);
+  const [isMicOn, setIsMicOn] = useState(false);
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const [viewerCount, setViewerCount] = useState(0);
+  const [streamDuration, setStreamDuration] = useState(0);
   const [devices, setDevices] = useState<{
     cameras: MediaDeviceInfo[];
-
     microphones: MediaDeviceInfo[];
-  }>({ cameras: [], microphones: [] }); // 设备列表
-  const [selectedCamera, setSelectedCamera] = useState(''); // 当前使用的摄像头
-  const [selectedMicrophone, setSelectedMicrophone] = useState(''); // 当前使用的麦克风
-  const [streamQuality, setStreamQuality] = useState('1080p'); // 当前选择的视频质量
-
-  const [bitrate, setBitrate] = useState(3500); // 当前选择的视频码率
-  const [fps, setFps] = useState(30); // 当前选择的帧率
-  const [audioLevel, setAudioLevel] = useState(0); // 当前音频电平
-  const [networkQuality] = useState('excellent'); // 当前网络质量
-  const [cpuUsage, setCpuUsage] = useState(0); // 当前CPU使用率
-  const [isSidebar, setIsSidebar] = useState(true); // 是否显示右侧边栏
-  const [isDanmu, setIsDanmu] = useState(false); // 是否显示弹幕
+  }>({ cameras: [], microphones: [] });
+  const [selectedCamera, setSelectedCamera] = useState('');
+  const [selectedMicrophone, setSelectedMicrophone] = useState('');
+  const [streamQuality, setStreamQuality] = useState('1080p');
+  const [bitrate, setBitrate] = useState(3500);
+  const [fps, setFps] = useState(30);
+  const [audioLevel, setAudioLevel] = useState(0);
+  const [networkQuality] = useState('excellent');
+  const [cpuUsage, setCpuUsage] = useState(0);
+  const [isSidebar, setIsSidebar] = useState(true);
+  const [isDanmu, setIsDanmu] = useState(true);
   const [personMask, setPersonMask] = useState<ImageData | null>(null);
-
-  const [publisher, setPublisher] = useState<WebRTCPublisher | null>(null);
-  const [streamStats, setStreamStats] = useState<any>(null);
-
   const [segmenter, setSegmenter] =
     useState<bodySegmentation.BodySegmenter | null>(null);
-  const videoRef = useRef<HTMLVideoElement>(null); // 视频元素
-  const screenRef = useRef<HTMLVideoElement>(null); // 屏幕元素
-  const pipVideoRef = useRef<HTMLVideoElement>(null); // 画中画元素
-  const cameraStreamRef = useRef<MediaStream | null>(null); // 摄像头流
-  const screenStreamRef = useRef<MediaStream | null>(null); // 屏幕流
-  const audioStreamRef = useRef<MediaStream | null>(null); // 音频流
-  const audioContextRef = useRef<AudioContext | null>(null); // 音频上下文
-  const analyserRef = useRef<AnalyserNode | null>(null); // 音频分析器
-  const canvasRef = useRef<HTMLCanvasElement>(null); // 画布元素
-  // 在组件顶部添加 state 来缓存背景图
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const screenRef = useRef<HTMLVideoElement>(null);
+  const pipVideoRef = useRef<HTMLVideoElement>(null);
+  const cameraStreamRef = useRef<MediaStream | null>(null);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+  const audioStreamRef = useRef<MediaStream | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const [backgroundImg, setBackgroundImg] = useState<HTMLImageElement | null>(
     null,
   );
-  const [personBounds, setPersonBounds] = useState<{
-    top: number;
-    bottom: number;
-    left: number;
-    right: number;
-  } | null>(null);
 
   // WebRTC 推流管理类
   class WebRTCPublisher {
@@ -93,9 +81,7 @@ export default function WebRTCDesktopStudio() {
       this.streamKey = streamKey;
     }
 
-    // 初始化 WebRTC 连接
     async connect(signalingServerUrl: string) {
-      // 1. 建立信令服务器 WebSocket 连接
       this.ws = new WebSocket(signalingServerUrl);
 
       this.ws.onopen = () => {
@@ -112,20 +98,10 @@ export default function WebRTCDesktopStudio() {
         console.error('❌ 信令服务器错误:', error);
       };
 
-      // 2. 创建 RTCPeerConnection
       this.pc = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          // 生产环境需要配置 TURN 服务器
-          // {
-          //   urls: 'turn:your-turn-server.com:3478',
-          //   username: 'user',
-          //   credential: 'pass'
-          // }
-        ],
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
       });
 
-      // 监听 ICE 候选
       this.pc.onicecandidate = (event) => {
         if (event.candidate) {
           this.sendMessage({
@@ -136,18 +112,15 @@ export default function WebRTCDesktopStudio() {
         }
       };
 
-      // 监听连接状态
       this.pc.onconnectionstatechange = () => {
         console.log('连接状态:', this.pc?.connectionState);
       };
 
-      // 监听 ICE 连接状态
       this.pc.oniceconnectionstatechange = () => {
         console.log('ICE 状态:', this.pc?.iceConnectionState);
       };
     }
 
-    // 身份验证
     private authenticate() {
       this.sendMessage({
         type: 'auth',
@@ -156,7 +129,6 @@ export default function WebRTCDesktopStudio() {
       });
     }
 
-    // 添加媒体流
     async addTracks(streams: {
       video?: MediaStream;
       audio?: MediaStream;
@@ -164,31 +136,24 @@ export default function WebRTCDesktopStudio() {
     }) {
       if (!this.pc) throw new Error('PeerConnection 未初始化');
 
-      // 添加视频轨道
       if (streams.video) {
         streams.video.getVideoTracks().forEach((track) => {
           this.pc!.addTrack(track, streams.video!);
-          console.log('✅ 视频轨道已添加');
         });
       }
 
-      // 添加屏幕共享轨道
       if (streams.screen) {
         streams.screen.getVideoTracks().forEach((track) => {
           this.pc!.addTrack(track, streams.screen!);
-          console.log('✅ 屏幕轨道已添加');
         });
       }
 
-      // 添加音频轨道
       if (streams.audio) {
         streams.audio.getAudioTracks().forEach((track) => {
           this.pc!.addTrack(track, streams.audio!);
-          console.log('✅ 音频轨道已添加');
         });
       }
 
-      // 创建 Offer
       const offer = await this.pc.createOffer({
         offerToReceiveAudio: false,
         offerToReceiveVideo: false,
@@ -196,7 +161,6 @@ export default function WebRTCDesktopStudio() {
 
       await this.pc.setLocalDescription(offer);
 
-      // 发送 SDP Offer 到服务器
       this.sendMessage({
         type: 'offer',
         sdp: offer,
@@ -204,29 +168,24 @@ export default function WebRTCDesktopStudio() {
       });
     }
 
-    // 处理信令消息
     private async handleSignalingMessage(message: any) {
       if (!this.pc) return;
 
       switch (message.type) {
         case 'answer':
-          // 收到 SDP Answer
           await this.pc.setRemoteDescription(
             new RTCSessionDescription({
               type: message.type,
               sdp: message.sdp,
             }),
           );
-          console.log('✅ SDP Answer 已设置');
           break;
 
         case 'ice-candidate':
-          // 收到 ICE 候选
           if (message.candidate) {
             await this.pc.addIceCandidate(
               new RTCIceCandidate(message.candidate),
             );
-            console.log('✅ ICE 候选已添加');
           }
           break;
 
@@ -236,14 +195,12 @@ export default function WebRTCDesktopStudio() {
       }
     }
 
-    // 发送信令消息
     private sendMessage(message: any) {
       if (this.ws?.readyState === WebSocket.OPEN) {
         this.ws.send(JSON.stringify(message));
       }
     }
 
-    // 获取统计信息
     async getStats() {
       if (!this.pc) return null;
 
@@ -261,10 +218,6 @@ export default function WebRTCDesktopStudio() {
               bytesSent: report.bytesSent,
               packetsSent: report.packetsSent,
               framesEncoded: report.framesEncoded,
-              framesSent: report.framesSent,
-              keyFramesEncoded: report.keyFramesEncoded,
-              totalEncodeTime: report.totalEncodeTime,
-              qualityLimitationReason: report.qualityLimitationReason,
             };
           } else if (report.kind === 'audio') {
             result.audio = {
@@ -278,8 +231,6 @@ export default function WebRTCDesktopStudio() {
           result.network = {
             currentRoundTripTime: report.currentRoundTripTime,
             availableOutgoingBitrate: report.availableOutgoingBitrate,
-            bytesSent: report.bytesSent,
-            bytesReceived: report.bytesReceived,
           };
         }
       });
@@ -287,7 +238,6 @@ export default function WebRTCDesktopStudio() {
       return result;
     }
 
-    // 断开连接
     disconnect() {
       if (this.pc) {
         this.pc.close();
@@ -298,28 +248,20 @@ export default function WebRTCDesktopStudio() {
         this.ws.close();
         this.ws = null;
       }
-
-      console.log('🔌 WebRTC 连接已断开');
     }
   }
 
-  // 同步视频流到视频元素
   useEffect(() => {
     if (isScreenSharing) {
-      // 屏幕共享时：屏幕显示在主窗口，摄像头显示在画中画
       if (screenRef.current && screenStreamRef.current) {
         screenRef.current.srcObject = screenStreamRef.current;
-        console.log('屏幕流已设置到主窗口');
       }
       if (isCameraOn && pipVideoRef.current && cameraStreamRef.current) {
         pipVideoRef.current.srcObject = cameraStreamRef.current;
-        console.log('摄像头流已设置到画中画');
       }
     } else if (isCameraOn) {
-      // 只有摄像头时：摄像头显示在主窗口
       if (videoRef.current && cameraStreamRef.current) {
         videoRef.current.srcObject = cameraStreamRef.current;
-        console.log('摄像头流已设置到主窗口');
       }
     }
   }, [isScreenSharing, isCameraOn]);
@@ -348,7 +290,7 @@ export default function WebRTCDesktopStudio() {
   }, []);
 
   useEffect(() => {
-    let interval: string | number | NodeJS.Timeout | undefined;
+    let interval: any;
     if (isStreaming) {
       interval = setInterval(() => {
         setStreamDuration((prev) => prev + 1);
@@ -364,7 +306,6 @@ export default function WebRTCDesktopStudio() {
     return () => clearInterval(interval);
   }, [isStreaming]);
 
-  // 加载模型
   useEffect(() => {
     const loadSegmenter = async () => {
       const model =
@@ -384,13 +325,11 @@ export default function WebRTCDesktopStudio() {
     loadSegmenter();
   }, []);
 
-  // 音频电平监测
   useEffect(() => {
     if (isMicOn && audioStreamRef.current) {
       try {
         const audioContext = new (window.AudioContext ||
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext)();
+          (window as any).webkitAudioContext)();
         const analyser = audioContext.createAnalyser();
         const source = audioContext.createMediaStreamSource(
           audioStreamRef.current,
@@ -430,18 +369,12 @@ export default function WebRTCDesktopStudio() {
   }, [isMicOn]);
 
   useEffect(() => {
-    console.log('主组件 personBounds 更新:', personBounds);
-  }, [personBounds]);
-
-  // 在组件加载时预加载背景图
-  useEffect(() => {
     const img = new Image();
     img.src = '/tjc.jpg';
     img.onload = () => setBackgroundImg(img);
     img.onerror = () => console.error('背景图加载失败');
   }, []);
 
-  // 实时处理人像分割
   const processSegmentation = async () => {
     if (!segmenter || !videoRef.current || !canvasRef.current) return;
 
@@ -465,110 +398,46 @@ export default function WebRTCDesktopStudio() {
 
     const segmentation = await segmenter.segmentPeople(video);
 
-    // 生成掩码
     const maskImageData = await bodySegmentation.toBinaryMask(
       segmentation,
-      { r: 255, g: 255, b: 255, a: 255 }, // 人像区域
-      { r: 0, g: 0, b: 0, a: 0 }, // 背景区域
+      { r: 255, g: 255, b: 255, a: 255 },
+      { r: 0, g: 0, b: 0, a: 0 },
     );
 
-    // 弹幕掩码
+    // 🎯 更新弹幕遮罩数据
     setPersonMask(maskImageData);
 
-    // 🎯 计算人像边界框
-    const data = maskImageData.data;
-    let minX = canvas.width,
-      maxX = 0,
-      minY = canvas.height,
-      maxY = 0;
-
-    for (let y = 0; y < canvas.height; y++) {
-      for (let x = 0; x < canvas.width; x++) {
-        const index = (y * canvas.width + x) * 4;
-        if (data[index] === 255) {
-          minX = Math.min(minX, x);
-          maxX = Math.max(maxX, x);
-          minY = Math.min(minY, y);
-          maxY = Math.max(maxY, y);
-        }
-      }
-    }
-
-    // 更新人像边界
-    if (maxX > minX && maxY > minY) {
-      const newBounds = {
-        left: (minX / canvas.width) * 100,
-        right: (maxX / canvas.width) * 100,
-        top: (minY / canvas.height) * 100,
-        bottom: (maxY / canvas.height) * 100,
-      };
-
-      // 只有当边界有明显变化时才更新，避免频繁更新
-      if (
-        !personBounds ||
-        Math.abs(newBounds.top - personBounds.top) > 1 ||
-        Math.abs(newBounds.bottom - personBounds.bottom) > 1 ||
-        Math.abs(newBounds.left - personBounds.left) > 1 ||
-        Math.abs(newBounds.right - personBounds.right) > 1
-      ) {
-        setPersonBounds(newBounds);
-      }
-    } else {
-      // 如果没有检测到人像，清除边界
-      if (personBounds) {
-        setPersonBounds(null);
-      }
-    }
-
-    // === 关键修改：创建掩码画布 ===
     const maskCanvas = document.createElement('canvas');
     maskCanvas.width = canvas.width;
     maskCanvas.height = canvas.height;
     const maskCtx = maskCanvas.getContext('2d');
     if (!maskCtx) return;
 
-    // 把掩码放到单独的画布
     maskCtx.putImageData(maskImageData, 0, 0);
 
-    // === 创建人像画布 ===
     const personCanvas = document.createElement('canvas');
     personCanvas.width = canvas.width;
     personCanvas.height = canvas.height;
     const personCtx = personCanvas.getContext('2d');
     if (!personCtx) return;
 
-    // 1. 先画视频原图
     personCtx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // 2. 用掩码裁剪（只保留白色区域，即人像）
     personCtx.globalCompositeOperation = 'destination-in';
-    personCtx.drawImage(maskCanvas, 0, 0); // 用掩码画布，不是 putImageData
+    personCtx.drawImage(maskCanvas, 0, 0);
     personCtx.globalCompositeOperation = 'source-over';
 
-    // ============ 关键修改：清除主画布 ============
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // 绘制背景（使用预加载的图片）
     if (backgroundImg) {
       ctx.drawImage(backgroundImg, 0, 0, canvas.width, canvas.height);
     } else {
-      // 降级方案：纯色背景
       ctx.fillStyle = 'black';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
     }
 
-    // 叠加人像
     ctx.drawImage(personCanvas, 0, 0);
 
-    // 继续下一帧
     requestAnimationFrame(processSegmentation);
-
-    // 在 processSegmentation 函数的最后添加
-    if (personBounds) {
-      ctx.strokeStyle = 'red';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-    }
   };
 
   const formatDuration = (seconds: number) => {
@@ -578,8 +447,6 @@ export default function WebRTCDesktopStudio() {
     return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // 摄像头状态
-  const isProcessing = useRef(false);
   const toggleCamera = async () => {
     if (!isCameraOn) {
       try {
@@ -612,9 +479,6 @@ export default function WebRTCDesktopStudio() {
         cameraStreamRef.current = stream;
         setIsCameraOn(true);
 
-        console.log('摄像头已开启', stream);
-
-        // ✅ 启动人像分割
         if (segmenter) {
           setTimeout(() => requestAnimationFrame(processSegmentation), 500);
         }
@@ -626,7 +490,6 @@ export default function WebRTCDesktopStudio() {
       if (cameraStreamRef.current) {
         cameraStreamRef.current.getTracks().forEach((track) => {
           track.stop();
-          console.log('停止摄像头轨道');
         });
         cameraStreamRef.current = null;
       }
@@ -637,14 +500,9 @@ export default function WebRTCDesktopStudio() {
         pipVideoRef.current.srcObject = null;
       }
       setIsCameraOn(false);
-      console.log('摄像头已关闭');
-
-      // 关闭摄像头
-      isProcessing.current = false;
     }
   };
 
-  // 麦克风状态
   const toggleMicrophone = async () => {
     if (!isMicOn) {
       try {
@@ -665,7 +523,6 @@ export default function WebRTCDesktopStudio() {
         audioStreamRef.current = stream;
 
         setIsMicOn(true);
-        console.log('麦克风已开启');
       } catch (error) {
         console.error('无法访问麦克风:', error);
         alert('无法访问麦克风，请检查权限设置');
@@ -674,16 +531,13 @@ export default function WebRTCDesktopStudio() {
       if (audioStreamRef.current) {
         audioStreamRef.current.getTracks().forEach((track) => {
           track.stop();
-          console.log('停止音频轨道');
         });
         audioStreamRef.current = null;
       }
       setIsMicOn(false);
-      console.log('麦克风已关闭');
     }
   };
 
-  // 屏幕共享状态
   const toggleScreenShare = async () => {
     if (!isScreenSharing) {
       try {
@@ -697,14 +551,10 @@ export default function WebRTCDesktopStudio() {
         screenStreamRef.current = stream;
         setIsScreenSharing(true);
 
-        // 监听用户停止共享
         stream.getVideoTracks()[0].onended = () => {
           setIsScreenSharing(false);
           screenStreamRef.current = null;
-          console.log('屏幕共享已停止（用户操作）');
         };
-
-        console.log('屏幕共享已开启', stream);
       } catch (error) {
         console.error('无法共享屏幕:', error);
       }
@@ -712,7 +562,6 @@ export default function WebRTCDesktopStudio() {
       if (screenStreamRef.current) {
         screenStreamRef.current.getTracks().forEach((track) => {
           track.stop();
-          console.log('停止屏幕共享轨道');
         });
         screenStreamRef.current = null;
       }
@@ -721,11 +570,9 @@ export default function WebRTCDesktopStudio() {
       }
 
       setIsScreenSharing(false);
-      console.log('屏幕共享已关闭');
     }
   };
 
-  // 直播状态
   const toggleStreaming = async () => {
     if (!isStreaming) {
       if (!isCameraOn && !isScreenSharing) {
@@ -733,47 +580,7 @@ export default function WebRTCDesktopStudio() {
         return;
       }
       setIsStreaming(true);
-      console.log('直播已开始');
-      try {
-        // 创建发布器
-        const streamKey = 'your-stream-key'; // 从服务器获取
-        const pub = new WebRTCPublisher(streamKey);
-
-        // 连接到信令服务器
-        await pub.connect('ws://localhost:8080');
-
-        // 添加媒体轨道
-        await pub.addTracks({
-          video: cameraStreamRef.current || undefined,
-          audio: audioStreamRef.current || undefined,
-          screen: screenStreamRef.current || undefined,
-        });
-
-        setPublisher(pub);
-        setIsStreaming(true);
-
-        // 定时获取统计信息
-        const statsInterval = setInterval(async () => {
-          const stats = await pub.getStats();
-          setStreamStats(stats);
-          console.log('📊 推流统计:', stats);
-        }, 1000);
-
-        // 保存 interval ID 用于清理
-        (pub as any).statsInterval = statsInterval;
-      } catch (error) {
-        console.error('❌ 推流启动失败:', error);
-        alert('推流启动失败: ' + error);
-      }
     } else {
-      // 停止直播
-      if (publisher) {
-        clearInterval((publisher as any).statsInterval);
-        publisher.disconnect();
-        setPublisher(null);
-      }
-
-      // 停止所有媒体流
       [cameraStreamRef, screenStreamRef, audioStreamRef].forEach((ref) => {
         ref.current?.getTracks().forEach((track) => track.stop());
         ref.current = null;
@@ -783,18 +590,15 @@ export default function WebRTCDesktopStudio() {
       setIsCameraOn(false);
       setIsMicOn(false);
       setIsScreenSharing(false);
-      console.log('直播已停止');
     }
   };
 
-  // 弹幕状态
   const toggleDanmu = () => {
     setIsDanmu(!isDanmu);
   };
 
   const [danmakuList, setDanmakuList] = useState<DanmakuItem[]>([]);
 
-  // 模拟接收弹幕
   useEffect(() => {
     const mockMessages = [
       '欢迎来到直播间！',
@@ -962,19 +766,21 @@ export default function WebRTCDesktopStudio() {
               )}
             </div>
             {/* 弹幕层 */}
-            <DanmakuPlayer
-              danmakuList={danmakuList}
-              onSend={handleSendDanmaku}
-              showInput={true}
-              config={{
-                fontSize: 24,
-                speed: 8,
-                opacity: 90,
-                area: 75,
-              }}
-              personBounds={personBounds}
-              personMask={personMask} // 新增：传递掩码数据用于精确检测
-            />
+            {/* 🎯 弹幕层（支持人像遮挡） */}
+            {isDanmu && (
+              <DanmakuPlayer
+                danmakuList={danmakuList}
+                onSend={handleSendDanmaku}
+                showInput={true}
+                config={{
+                  fontSize: 24,
+                  speed: 8,
+                  opacity: 90,
+                  area: 75,
+                }}
+                personMask={personMask}
+              />
+            )}
           </div>
 
           {/* 底部控制栏 */}
