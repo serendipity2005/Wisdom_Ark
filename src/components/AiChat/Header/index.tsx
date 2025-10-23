@@ -41,7 +41,6 @@ function Header({ timePeriod, userName }: HeaderProps) {
             <BellOutlined className="inform-icon" />
           </Badge>
         </Tooltip>
-
         <Dropdown menu={{ items: userMenuItems }} placement="bottomRight">
           <div className="user-avatar">
             <Avatar size={32} className="user-avatar-icon">

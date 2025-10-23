@@ -201,7 +201,7 @@ class AIServiceManager {
 const aiServiceManager = new AIServiceManager(AI_SERVICES);
 
 // 启动健康检查（每30秒）
-aiServiceManager.startHealthCheck(6000 * 2);
+aiServiceManager.startHealthCheck(60000 * 60 * 2);
 
 // 监听服务切换
 aiServiceManager.onServiceChange((service) => {
