@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import 'highlight.js/styles/github.css'; // 代码高亮样式（可选其他主题）
+import { useState, useEffect, useMemo, useRef } from 'react';
+import 'highlight.js/styles/github.css';
 import { mockMarked } from '@/utils/mdRendering';
 
 interface MarkdownRendererProps {
@@ -8,54 +8,8 @@ interface MarkdownRendererProps {
 
 export const FixedMarkdownRenderer = ({ rawText }: MarkdownRendererProps) => {
   const [markdownHtml, setMarkdownHtml] = useState('');
-  const [error, setError] = useState(null);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // 使用 ref 来追踪渲染状态，避免不必要的重渲染
-  const renderingRef = useRef(false);
+  const [error, setError] = useState<string | null>(null);
   const lastProcessedTextRef = useRef('');
-  const renderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // 防抖渲染函数
-  const debouncedRender = useCallback(async (text: string) => {
-    // 清除之前的定时器
-    if (renderTimerRef.current) {
-      clearTimeout(renderTimerRef.current);
-    }
-
-    // 如果正在渲染，跳过这次更新
-    if (renderingRef.current) {
-      renderTimerRef.current = setTimeout(() => debouncedRender(text), 100);
-      return;
-    }
-
-    // 如果文本没有变化，跳过渲染
-    if (text === lastProcessedTextRef.current) {
-      return;
-    }
-
-    renderingRef.current = true;
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      const html = await mockMarked.parse(text);
-
-      // 使用 RAF 来确保 DOM 更新的平滑性
-      requestAnimationFrame(() => {
-        setMarkdownHtml(html);
-        lastProcessedTextRef.current = text;
-        setIsLoading(false);
-        renderingRef.current = false;
-      });
-    } catch (err) {
-      console.error('Markdown解析失败:', err);
-      setError(err.message);
-      setMarkdownHtml('');
-      setIsLoading(false);
-      renderingRef.current = false;
-    }
-  }, []);
 
   // 使用useMemo优化文本预处理
   const processedText = useMemo(() => {
@@ -88,31 +42,34 @@ export const FixedMarkdownRenderer = ({ rawText }: MarkdownRendererProps) => {
     }
   }, [rawText]);
 
-  // 使用防抖渲染
+  // 直接渲染,移除防抖和RAF,减少延迟
   useEffect(() => {
     if (!processedText) {
       setMarkdownHtml('');
+      lastProcessedTextRef.current = '';
       return;
     }
 
-    // 使用防抖渲染，减少频繁更新
-    const timeoutId = setTimeout(() => {
-      debouncedRender(processedText);
-    }, 50); // 50ms 防抖延迟
+    // 避免重复渲染相同内容
+    if (processedText === lastProcessedTextRef.current) {
+      return;
+    }
 
-    return () => {
-      clearTimeout(timeoutId);
-    };
-  }, [processedText, debouncedRender]);
-
-  // 清理定时器
-  useEffect(() => {
-    return () => {
-      if (renderTimerRef.current) {
-        clearTimeout(renderTimerRef.current);
+    const renderMarkdown = async () => {
+      try {
+        const html = await mockMarked.parse(processedText);
+        setMarkdownHtml(html);
+        lastProcessedTextRef.current = processedText;
+        setError(null);
+      } catch (err: any) {
+        console.error('Markdown解析失败:', err);
+        setError(err?.message || 'Unknown error');
+        setMarkdownHtml('');
       }
     };
-  }, []);
+
+    renderMarkdown();
+  }, [processedText]);
 
   if (error) {
     return (
@@ -153,14 +110,11 @@ export const FixedMarkdownRenderer = ({ rawText }: MarkdownRendererProps) => {
 
   return (
     <div
-      className={`markdown-content ${isLoading ? 'loading' : ''}`}
+      className="markdown-content"
       style={{
         fontFamily:
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         lineHeight: '1.6',
-        transition: 'opacity 0.1s ease-in-out', // 添加平滑过渡
-        opacity: isLoading ? 0.8 : 1, // 加载时稍微降低透明度
-        minHeight: markdownHtml ? 'auto' : '20px', // 防止高度突变
       }}
       dangerouslySetInnerHTML={{ __html: markdownHtml }}
     />

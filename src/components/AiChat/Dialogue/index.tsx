@@ -21,7 +21,7 @@ interface DialogueProps {
 }
 
 /**
- * 单条消息组件，避免整个列表反复渲染
+ * 单条消息组件
  */
 const ChatMessage: React.FC<{
   message: Message;
@@ -73,12 +73,37 @@ const ChatMessage: React.FC<{
 ChatMessage.displayName = 'ChatMessage';
 
 const ChatConversationPage: React.FC<DialogueProps> = ({
-  chatHistory: messages,
+  chatHistory,
   msgLoading,
   currentMessage,
 }) => {
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
+
+  // 合并当前流式消息到历史记录
+  //   const displayMessages = React.useMemo(() => {
+  //     if (!currentMessage || chatHistory.length === 0) {
+  //       return chatHistory;
+  //     }
+
+  //     const lastMessage = chatHistory[chatHistory.length - 1];
+
+  //     // 只有当最后一条消息是 assistant 且正在加载时才合并
+  //     if (lastMessage.role === 'assistant' && msgLoading) {
+  //       return [
+  //         ...chatHistory.slice(0, -1),
+  //         {
+  //           ...lastMessage,
+  //           content: lastMessage.content + currentMessage,
+  //         },
+  //       ];
+  //     }
+
+  //     return chatHistory;
+  //   }, [chatHistory, currentMessage, msgLoading]);
+
+  // displayMessages 逻辑简化
+  const displayMessages = chatHistory; // 直接使用
 
   const scrollToBottom = useCallback((smooth = false) => {
     const container = messagesContainerRef.current;
@@ -102,7 +127,7 @@ const ChatConversationPage: React.FC<DialogueProps> = ({
     return () => clearTimeout(timer);
   }, [scrollToBottom]);
 
-  // 滚动事件监听，控制「回到底部按钮」
+  // 滚动事件监听
   useEffect(() => {
     const container = messagesContainerRef.current;
     if (!container) return;
@@ -120,25 +145,33 @@ const ChatConversationPage: React.FC<DialogueProps> = ({
     return () => container.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // 只有新增消息时才自动滚动到底部
+  // 消息更新时自动滚动
   useEffect(() => {
     scrollToBottom();
-  }, [messages.length, scrollToBottom]);
+  }, [displayMessages.length, scrollToBottom]);
+
+  // 流式消息更新时也要滚动(但使用节流避免过于频繁)
+  const lastScrollTimeRef = useRef(0);
+  useEffect(() => {
+    if (currentMessage && msgLoading) {
+      const now = Date.now();
+      if (now - lastScrollTimeRef.current > 100) {
+        scrollToBottom();
+        lastScrollTimeRef.current = now;
+      }
+    }
+  }, [currentMessage, msgLoading, scrollToBottom]);
 
   return (
     <Layout className="dialogue-box">
       <Content className="dialogue-content">
         <div className="dialogue-messages" ref={messagesContainerRef}>
           <div className="messages-container">
-            {messages.map((message, index) => (
+            {displayMessages.map((message, index) => (
               <ChatMessage
                 key={message.id}
-                message={
-                  index === messages.length - 1 && message.role === 'assistant'
-                    ? { ...message, content: message.content + currentMessage }
-                    : message
-                }
-                isLast={index === messages.length - 1}
+                message={message}
+                isLast={index === displayMessages.length - 1}
                 msgLoading={msgLoading}
               />
             ))}
@@ -158,4 +191,5 @@ const ChatConversationPage: React.FC<DialogueProps> = ({
     </Layout>
   );
 };
+
 export default ChatConversationPage;

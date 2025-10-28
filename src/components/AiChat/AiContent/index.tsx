@@ -136,93 +136,126 @@ export default function AiContent({ timePeriod, userName }: AiContentProps) {
   const currentResponseRef = useRef('');
   const [currentMessage, setCurrentMessage] = useState('');
 
-  const handleSendMessage = async (message: string) => {
-    if (!message.trim()) return;
-    setMsgLoading(true);
+  //   const handleSendMessage = async (message: string) => {
+  //     if (!message.trim()) return;
+  //     setMsgLoading(true);
 
+  //     // 添加用户消息
+  //     const newUserMessage = {
+  //       id: Date.now().toString(),
+  //       role: 'user' as const,
+  //       content: message,
+  //       timestamp: new Date(),
+  //     };
+
+  //     setChatHistory((prev) => [...prev, newUserMessage]);
+  //     setHasSentFirstMessage(true);
+
+  //     // 添加一个占位的AI消息
+  //     const aiMessageIndex = chatHistory.length + 1;
+  //     currentResponseRef.current = '';
+  //     setChatHistory((prev) => [
+  //       ...prev,
+  //       {
+  //         id: (Date.now() + 1).toString(),
+  //         role: 'assistant',
+  //         content: '',
+  //         timestamp: new Date(),
+  //       },
+  //     ]);
+
+  //     try {
+  //       await chatWithGPT(
+  //         [...chatHistory, newUserMessage],
+  //         // onChunk: 处理每个数据块
+  //         (chunk: string) => {
+  //           //   setMsgLoading(false);
+  //           currentResponseRef.current += chunk;
+  //           setCurrentMessage(currentResponseRef.current);
+
+  //           // 更新消息列表中的AI回复
+  //           setChatHistory((prev) => {
+  //             const updated = [...prev];
+  //             updated[aiMessageIndex].content = currentResponseRef.current;
+  //             return updated;
+  //           });
+  //         },
+  //         // onComplete: 完成时的处理
+  //         (fullResponse: string) => {
+  //           setMsgLoading(false);
+  //           setCurrentMessage(''); // 清空当前消息状态
+  //           setChatHistory((prev) => {
+  //             const updated = [...prev];
+  //             updated[aiMessageIndex].content = fullResponse;
+  //             return updated;
+  //           });
+  //         },
+  //         // onError: 错误处理
+  //         (error: any) => {
+  //           setMsgLoading(false);
+  //           setCurrentMessage(''); // 清空当前消息状态
+  //           console.error('Stream error:', error);
+  //           setChatHistory((prev) => {
+  //             const updated = [...prev];
+  //             updated[aiMessageIndex].content = '发生错误，请重试';
+  //             return updated;
+  //           });
+  //         },
+  //       );
+  //     } catch (error) {
+  //       setMsgLoading(false);
+  //       console.error('Chat error:', error);
+  //     }
+  //   };
+
+  const handleSendMessage = async (userMessage: string) => {
     // 添加用户消息
     const newUserMessage = {
-      id: Date.now().toString(),
+      id: `msg_${Date.now()}_user`,
       role: 'user' as const,
-      content: message,
+      content: userMessage,
       timestamp: new Date(),
     };
 
     setChatHistory((prev) => [...prev, newUserMessage]);
-    setHasSentFirstMessage(true);
 
-    // const aiResponse: string =
-    //   (await chatWithGPT([...chatHistory, newUserMessage])) ??
-    //   '抱歉，我无法处理你的请求。';
-    // setMsgLoading(false);
-    // console.log(aiResponse);
+    // 添加空的助手消息
+    const assistantMessageId = `msg_${Date.now()}_assistant`;
+    const assistantMessage = {
+      id: assistantMessageId,
+      role: 'assistant' as const,
+      content: '',
+      timestamp: new Date(),
+    };
 
-    // 添加一个占位的AI消息
-    const aiMessageIndex = chatHistory.length + 1;
-    currentResponseRef.current = '';
-    setChatHistory((prev) => [
-      ...prev,
-      {
-        id: (Date.now() + 1).toString(),
-        role: 'assistant',
-        content: '',
-        timestamp: new Date(),
-      },
-    ]);
+    setChatHistory((prev) => [...prev, assistantMessage]);
+    setMsgLoading(true);
 
     try {
       await chatWithGPT(
         [...chatHistory, newUserMessage],
-        // onChunk: 处理每个数据块
+        // onChunk - 直接更新 history
         (chunk: string) => {
-          //   setMsgLoading(false);
-          currentResponseRef.current += chunk;
-          setCurrentMessage(currentResponseRef.current);
-
-          // 更新消息列表中的AI回复
-          setChatHistory((prev) => {
-            const updated = [...prev];
-            // updated[aiMessageIndex] = {
-            //   id: Date.now().toString(),
-            //   role: 'assistant',
-            //   content: currentResponseRef.current,
-            //   timestamp: new Date(),
-            // };
-            updated[aiMessageIndex].content = currentResponseRef.current;
-            return updated;
-          });
+          setChatHistory((prev) =>
+            prev.map((msg) =>
+              msg.id === assistantMessageId
+                ? { ...msg, content: msg.content + chunk }
+                : msg,
+            ),
+          );
         },
-        // onComplete: 完成时的处理
-        (fullResponse: string) => {
+        // onComplete
+        () => {
           setMsgLoading(false);
-          setCurrentMessage(''); // 清空当前消息状态
-          setChatHistory((prev) => {
-            const updated = [...prev];
-            // updated[aiMessageIndex] = {
-            //   id: Date.now().toString(),
-            //   role: 'assistant',
-            //   content: fullResponse,
-            //   timestamp: new Date(),
-            // };
-            updated[aiMessageIndex].content = fullResponse;
-            return updated;
-          });
         },
-        // onError: 错误处理
-        (error: any) => {
+        (error) => {
+          console.error(error);
           setMsgLoading(false);
-          setCurrentMessage(''); // 清空当前消息状态
-          console.error('Stream error:', error);
-          setChatHistory((prev) => {
-            const updated = [...prev];
-            updated[aiMessageIndex].content = '发生错误，请重试';
-            return updated;
-          });
         },
       );
     } catch (error) {
+      console.error(error);
       setMsgLoading(false);
-      console.error('Chat error:', error);
     }
   };
 
