@@ -69,7 +69,7 @@ export default function AIEditorToolbar({ editor }: AIEditorToolbarProps) {
           topP: settings.topP,
         },
       );
-      console.log('智能fim补全 xxxxx', result);
+      console.log('result', result);
 
       // push suggestion instead of direct insert
       AISuggestionBus.getInstance().show({

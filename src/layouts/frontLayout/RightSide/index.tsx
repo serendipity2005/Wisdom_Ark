@@ -26,7 +26,6 @@ const isElementInView = (element: HTMLElement): boolean => {
   if (!element) return false;
 
   const rect = element.getBoundingClientRect();
-  console.log(rect);
   // 判断元素是否完全在窗口内
   const isInView = !(rect.bottom < 0);
 

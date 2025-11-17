@@ -528,6 +528,10 @@ export const chatInEditor = async (content: {
   suffix: string;
 }) => {
   const { prefix, suffix } = content;
+  console.log('RAG 检索增强----');
+  console.log(prefix, 'prefix');
+  console.log(suffix, 'suffix');
+
   const client = new OpenAI({
     baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     apiKey: 'sk-da6f76fe6f8e4bc2871be0c57ffa3201',
@@ -535,9 +539,11 @@ export const chatInEditor = async (content: {
   });
 
   const completion = await client.completions.create({
-    model: 'qwen2.5-coder-7b-instruct',
+    model: 'qwen-coder-turbo',
     prompt: `<|fim_prefix|>${prefix}<|fim_suffix|>${suffix}<|fim_middle|>`,
+    max_tokens: 1024,
   });
+  console.log(completion, 'completion');
   console.log(completion.choices[0], 'completion.choices[0]');
 
   return completion.choices[0].text;

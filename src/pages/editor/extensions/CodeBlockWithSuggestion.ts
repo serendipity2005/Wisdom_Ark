@@ -58,13 +58,13 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
         console.log('发起AI建议请求...');
         //❌ 问题2：无法取消进行中的 LLM 请求
         //这里返回模拟数据，实际使用时取消注释 需要传入 abortSignal
-        // const suggestion = await fimService.fillInMiddle(prefix, suffix, {
-        //   maxTokens: 100,
-        //   temperature: 0.7,
-        //   topP: 0.9,
-        //   signal: abortSignal
-        // });
-        // return suggestion;
+        const suggestion = await fimService.fillInMiddle(prefix, suffix, {
+          maxTokens: 100,
+          temperature: 0.7,
+          topP: 0.9,
+          signal: abortSignal,
+        });
+        return suggestion;
 
         // return `let timer = null;
         // return function (fn, time) {

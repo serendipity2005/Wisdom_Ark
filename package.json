@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "server": "nodemon server/server.js",
+    "dev:all": "concurrently \"npm run dev\" \"npm run server\"",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
@@ -98,6 +100,7 @@
     "@unocss/preset-rem-to-px": "^66.3.3",
     "@unocss/transformer-directives": "^66.3.3",
     "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^9.2.1",
     "eslint": "^9.32.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.3",

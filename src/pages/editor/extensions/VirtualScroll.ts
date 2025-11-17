@@ -617,13 +617,13 @@ export default Extension.create({
               );
 
               // 🔥 详细调试信息：显示块状态表格
-              if (debugBlocks.length > 0) {
-                console.group('[VirtualScroll] 🔍 块状态详情');
-                console.table(debugBlocks);
-                console.log('光标位置:', { from: selFrom, to: selTo });
-                console.log('光标缓冲区:', cursorBuffer, '字符');
-                console.groupEnd();
-              }
+              // if (debugBlocks.length > 0) {
+              //   console.group('[VirtualScroll] 🔍 块状态详情');
+              //   console.table(debugBlocks);
+              //   console.log('光标位置:', { from: selFrom, to: selTo });
+              //   console.log('光标缓冲区:', cursorBuffer, '字符');
+              //   console.groupEnd();
+              // }
 
               // 🔥 调试：检查 visibleBlockRange 是否正确初始化
               if (
@@ -729,12 +729,12 @@ export default Extension.create({
               return;
             }
 
-            if (enableDebugLog) {
-              console.log(
-                '[VirtualScroll] 📜 滚动事件触发, scrollTop:',
-                scrollContainer?.scrollTop,
-              );
-            }
+            // if (enableDebugLog) {
+            //   console.log(
+            //     '[VirtualScroll] 📜 滚动事件触发, scrollTop:',
+            //     scrollContainer?.scrollTop,
+            //   );
+            // }
 
             if (scrollTimeout) clearTimeout(scrollTimeout);
             scrollTimeout = setTimeout(() => {

@@ -58,4 +58,23 @@ export default defineConfig({
       },
     },
   },
+
+  // server: {
+  //   proxy: {
+  //     '/api/dashscope': {
+  //       target: 'https://dashscope.aliyuncs.com',
+  //       changeOrigin: true,
+  //       rewrite: (path) => path.replace(/^\/api\/dashscope/, ''),
+  //       configure: (proxy, options) => {
+  //         proxy.on('proxyReq', (proxyReq, req, res) => {
+  //           // 添加Authorization头
+  //           const apiKey = process.env.VITE_DASHSCOPE_API_KEY;
+  //           if (apiKey) {
+  //             proxyReq.setHeader('Authorization', `Bearer ${apiKey}`);
+  //           }
+  //         });
+  //       }
+  //     }
+  //   }
+  // }
 });
