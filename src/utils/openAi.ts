@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import toolsMap from './aiTools';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 
-// ==================== 对话上下文管理器 ====================
+// ==================== 类型定义 ====================
 interface Message {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string;
@@ -18,18 +18,18 @@ interface ConversationContext {
   maxTokens: number;
   createdAt: Date;
   lastActivity: Date;
-  summary?: string; // 对话摘要
-  keyPoints?: string[]; // 关键信息点
-  topics?: string[]; // 讨论的主题
+  summary?: string;
+  keyPoints?: string[];
+  topics?: string[];
 }
 
+// ==================== 对话上下文管理器 ====================
 class ConversationManager {
   private contexts = new Map<string, ConversationContext>();
-  private maxContextTokens = 4000; // 单次请求最大token数
-  private maxHistoryMessages = 10; // 最大保留消息数
-  private summaryThreshold = 8; // 超过8条消息时触发摘要
+  private maxContextTokens = 4000;
+  private maxHistoryMessages = 10;
+  private summaryThreshold = 8;
 
-  // 创建新对话
   createConversation(id: string): ConversationContext {
     const context: ConversationContext = {
       id,
@@ -43,37 +43,36 @@ class ConversationManager {
     return context;
   }
 
-  // 添加消息
   addMessage(contextId: string, message: Message) {
     const context = this.contexts.get(contextId);
     if (!context) {
       throw new Error(`对话上下文 ${contextId} 不存在`);
     }
 
+    if (!message.content) {
+      console.warn('⚠️ 消息内容为空，跳过添加');
+      return;
+    }
+
     message.timestamp = Date.now();
     context.messages.push(message);
     context.lastActivity = new Date();
-    context.totalTokens += this.estimateTokens(message.content);
+    context.totalTokens += this.estimateTokens(String(message.content));
 
-    // 检查是否需要压缩历史
     this.checkAndCompressHistory(contextId);
   }
 
-  // 获取优化后的消息历史
   getOptimizedMessages(contextId: string): Message[] {
     const context = this.contexts.get(contextId);
     if (!context) return [];
 
     const messages = [...context.messages];
-
-    // 策略1: 保留最近的N条消息
     const recentMessages = messages.slice(-this.maxHistoryMessages);
 
-    // 策略2: 如果有摘要，插入摘要
     if (context.summary && messages.length > this.maxHistoryMessages) {
       return [
         {
-          role: 'system',
+          role: 'user',
           content: `[对话历史摘要]\n${context.summary}\n[以下是最近的对话]`,
         },
         ...recentMessages,
@@ -83,40 +82,31 @@ class ConversationManager {
     return recentMessages;
   }
 
-  // 压缩历史记录
   private async checkAndCompressHistory(contextId: string) {
     const context = this.contexts.get(contextId);
     if (!context) return;
 
-    // 如果消息数超过阈值，生成摘要
     if (context.messages.length > this.summaryThreshold && !context.summary) {
       await this.generateSummary(contextId);
     }
 
-    // 如果token数超过限制，移除旧消息
     while (
       context.totalTokens > this.maxContextTokens &&
       context.messages.length > 2
     ) {
       const removed = context.messages.shift();
-      if (removed) {
-        context.totalTokens -= this.estimateTokens(removed.content);
+      if (removed && removed.content) {
+        context.totalTokens -= this.estimateTokens(String(removed.content));
       }
     }
   }
 
-  // 生成对话摘要（可以调用AI生成，这里简化处理）
   private async generateSummary(contextId: string) {
     const context = this.contexts.get(contextId);
     if (!context) return;
 
-    // 提取关键信息
     const userMessages = context.messages.filter((m) => m.role === 'user');
-    const assistantMessages = context.messages.filter(
-      (m) => m.role === 'assistant',
-    );
 
-    // 简化版摘要生成
     context.summary = `
 用户主要询问了 ${userMessages.length} 个问题，涉及以下主题：
 ${this.extractTopics(context.messages).join('、')}
@@ -127,7 +117,6 @@ ${this.extractTopics(context.messages).join('、')}
     console.log(`📝 生成对话摘要: ${contextId}`);
   }
 
-  // 提取对话主题
   private extractTopics(messages: Message[]): string[] {
     const topics = new Set<string>();
     const keywords = [
@@ -140,11 +129,12 @@ ${this.extractTopics(context.messages).join('、')}
       '性能',
       '优化',
       '部署',
+      'Markdown',
     ];
 
     messages.forEach((msg) => {
       keywords.forEach((keyword) => {
-        if (msg.content.includes(keyword)) {
+        if (msg.content && msg.content.includes(keyword)) {
           topics.add(keyword);
         }
       });
@@ -153,14 +143,15 @@ ${this.extractTopics(context.messages).join('、')}
     return Array.from(topics);
   }
 
-  // 估算token数（简单估算：中文1字符≈2token，英文1单词≈1.3token）
   private estimateTokens(text: string): number {
+    if (!text || typeof text !== 'string') {
+      return 0;
+    }
     const chineseChars = (text.match(/[\u4e00-\u9fa5]/g) || []).length;
     const englishWords = (text.match(/[a-zA-Z]+/g) || []).length;
     return Math.ceil(chineseChars * 2 + englishWords * 1.3);
   }
 
-  // 获取对话统计
   getStats(contextId: string) {
     const context = this.contexts.get(contextId);
     if (!context) return null;
@@ -173,7 +164,6 @@ ${this.extractTopics(context.messages).join('、')}
     };
   }
 
-  // 清理过期对话（超过1小时未活动）
   cleanupInactive(maxAge = 3600000) {
     const now = Date.now();
     for (const [id, context] of this.contexts.entries()) {
@@ -183,86 +173,68 @@ ${this.extractTopics(context.messages).join('、')}
       }
     }
   }
+
+  getContext(contextId: string) {
+    return this.contexts.get(contextId);
+  }
 }
 
 // ==================== Prompt 优化器 ====================
 class PromptOptimizer {
-  // 优化系统提示词
   optimizeSystemPrompt(userQuery: string, conversationHistory: Message[]) {
     const topics = this.detectTopics(userQuery, conversationHistory);
     const complexity = this.assessComplexity(userQuery);
     const intent = this.detectIntent(userQuery);
-    console.log(topics, complexity, intent);
+
+    console.log('📊 Prompt优化:', { topics, complexity, intent });
 
     let systemPrompt = `## 角色
 你是一个专业的前端导师，擅长 Vue、React、Webpack、TypeScript 等前端技术。
 
 ## 当前对话上下文
-- 讨论主题: ${topics.join('、')}
+- 讨论主题: ${topics.length > 0 ? topics.join('、') : '通用前端技术'}
 - 问题复杂度: ${complexity}
 - 用户意图: ${intent}
 
 ## 输出规范
 `;
 
-    // 根据意图调整输出格式
     switch (intent) {
       case 'code':
-        systemPrompt += `
-- 提供完整可运行的代码示例
-- 包含详细的代码注释
-- 说明设计思路和实现要点
-- 如有必要，提供多个实现方案对比
-`;
+        systemPrompt += `- 提供完整可运行的代码示例\n- 包含详细的代码注释\n- 说明设计思路和实现要点`;
         break;
       case 'concept':
-        systemPrompt += `
-- 由浅入深解释概念
-- 使用类比和实例帮助理解
-- 画出流程图或架构图（用 Markdown）
-- 提供延伸学习资源
-`;
+        systemPrompt += `- 由浅入深解释概念\n- 使用类比和实例帮助理解\n- 提供延伸学习资源`;
         break;
       case 'debug':
-        systemPrompt += `
-- 分析可能的错误原因
-- 提供调试思路和方法
-- 给出具体的解决方案
-- 预防类似问题的建议
-`;
-        break;
-      case 'comparison':
-        systemPrompt += `
-- 多维度对比分析
-- 列出各自优缺点
-- 提供使用场景建议
-- 给出技术选型建议
-`;
+        systemPrompt += `- 分析可能的错误原因\n- 提供调试思路和方法\n- 给出具体的解决方案`;
         break;
       default:
-        systemPrompt += `
-- 简洁明了地回答问题
-- 提供必要的代码示例
-- 如需深入，可询问用户需求
-`;
+        systemPrompt += `- 简洁明了地回答问题\n- 提供必要的代码示例`;
     }
 
     return systemPrompt;
   }
 
-  // 检测话题
   private detectTopics(query: string, history: Message[]): string[] {
-    const allText = query + ' ' + history.map((m) => m.content).join(' ');
-    const topics = new Set<string>();
+    const safeQuery = String(query || '');
+    const safeHistory = Array.isArray(history) ? history : [];
 
+    const allText =
+      safeQuery +
+      ' ' +
+      safeHistory
+        .filter((m) => m && m.content)
+        .map((m) => String(m.content))
+        .join(' ');
+
+    const topics = new Set<string>();
     const topicPatterns = {
       Vue: /vue|vuex|pinia|vue-router/i,
-      React: /react|redux|mobx|react-router/i,
-      TypeScript: /typescript|ts|类型|泛型/i,
-      性能优化: /性能|优化|加载|渲染/i,
-      构建工具: /webpack|vite|rollup|打包/i,
-      组件开发: /组件|component|props|emit/i,
-      状态管理: /状态|store|redux|vuex/i,
+      React: /react|redux|mobx|hooks/i,
+      TypeScript: /typescript|ts(?![a-z])|类型/i,
+      Markdown: /markdown|md|渲染/i,
+      性能优化: /性能|优化|渲染/i,
     };
 
     Object.entries(topicPatterns).forEach(([topic, pattern]) => {
@@ -274,12 +246,11 @@ class PromptOptimizer {
     return Array.from(topics);
   }
 
-  // 评估复杂度
   private assessComplexity(query: string): string {
     const indicators = {
-      high: ['架构', '设计模式', '源码', '原理', '底层'],
-      medium: ['实现', '如何', '怎么', '方案', '优化'],
-      low: ['是什么', '有什么', '简单', '快速'],
+      high: ['架构', '设计模式', '源码', '原理'],
+      medium: ['实现', '如何', '怎么', '方案'],
+      low: ['是什么', '简单', '快速'],
     };
 
     for (const [level, keywords] of Object.entries(indicators)) {
@@ -290,14 +261,11 @@ class PromptOptimizer {
     return '中';
   }
 
-  // 检测用户意图
   private detectIntent(query: string): string {
     const intentPatterns = {
-      code: /代码|实现|写|示例|demo/i,
-      concept: /是什么|概念|原理|理解|解释/i,
-      debug: /错误|报错|bug|不工作|失败/i,
-      comparison: /对比|区别|比较|选择|vs/i,
-      optimization: /优化|性能|提升|改进/i,
+      code: /代码|实现|写|示例/i,
+      concept: /是什么|概念|原理|解释/i,
+      debug: /错误|报错|bug|失败/i,
     };
 
     for (const [intent, pattern] of Object.entries(intentPatterns)) {
@@ -307,149 +275,9 @@ class PromptOptimizer {
     }
     return 'general';
   }
-
-  // 优化用户输入
-  enhanceUserQuery(query: string, context: Message[]): string {
-    // 如果用户问题过于简短，添加上下文信息
-    if (query.length < 10 && context.length > 0) {
-      const lastTopic = this.detectTopics(
-        context[context.length - 1]?.content || '',
-        [],
-      );
-      if (lastTopic.length > 0) {
-        return `关于 ${lastTopic.join('、')} 的问题：${query}`;
-      }
-    }
-    return query;
-  }
 }
 
-// ==================== 增强的对话函数 ====================
-const conversationManager = new ConversationManager();
-const promptOptimizer = new PromptOptimizer();
-
-// 定期清理过期对话
-setInterval(() => {
-  conversationManager.cleanupInactive();
-}, 600000); // 每10分钟清理一次
-
-export const chatWithGPTEnhanced = async (
-  messages: Message[],
-  options: {
-    conversationId?: string; // 对话ID，用于多轮对话
-    enableOptimization?: boolean; // 是否启用优化
-    onChunk?: (chunk: string) => void;
-    onComplete?: (fullResponse: string) => void;
-    onError?: (error: any) => void;
-    onServiceSwitch?: (serviceName: string) => void;
-    onContextUpdate?: (stats: any) => void; // 上下文更新回调
-  } = {},
-) => {
-  const {
-    conversationId = `conv_${Date.now()}`,
-    enableOptimization = true,
-    onChunk,
-    onComplete,
-    onError,
-    onServiceSwitch,
-    onContextUpdate,
-  } = options;
-
-  // 获取或创建对话上下文
-  let context = conversationManager.contexts.get(conversationId);
-  if (!context) {
-    context = conversationManager.createConversation(conversationId);
-  }
-
-  // 将新消息添加到上下文
-  messages.forEach((msg) => {
-    if (msg.role !== 'system') {
-      conversationManager.addMessage(conversationId, msg);
-    }
-  });
-
-  // 获取最新用户消息
-  const userMessages = messages.filter((m) => m.role === 'user');
-  const latestUserQuery = userMessages[userMessages.length - 1]?.content || '';
-
-  // 优化系统提示词
-  let systemPrompt = `## 角色
-你是一个专业的前端导师，擅长 Vue、React、Webpack、TypeScript 等前端技术。
-
-## 输出规范
-- 代码问题：提供设计思路 + 代码实现
-- 概念问题：由浅入深解释
-- 其他问题：简洁准确回答
-`;
-
-  if (enableOptimization) {
-    const conversationHistory =
-      conversationManager.getOptimizedMessages(conversationId);
-    systemPrompt = promptOptimizer.optimizeSystemPrompt(
-      latestUserQuery,
-      conversationHistory,
-    );
-  }
-
-  // 获取优化后的消息列表
-  const optimizedMessages = [
-    { role: 'system' as const, content: systemPrompt },
-    ...conversationManager.getOptimizedMessages(conversationId),
-  ];
-
-  // 发送统计信息
-  const stats = conversationManager.getStats(conversationId);
-  if (stats) {
-    onContextUpdate?.({
-      ...stats,
-      optimizationEnabled: enableOptimization,
-      systemPrompt: systemPrompt.substring(0, 100) + '...',
-    });
-  }
-
-  // 调用原始的 chatWithGPT 函数
-  try {
-    const response = await chatWithGPT(
-      optimizedMessages,
-      onChunk,
-      (fullResponse) => {
-        // 将AI回复添加到上下文
-        conversationManager.addMessage(conversationId, {
-          role: 'assistant',
-          content: fullResponse,
-        });
-        onComplete?.(fullResponse);
-      },
-      onError,
-      onServiceSwitch,
-    );
-
-    return response;
-  } catch (error) {
-    onError?.(error);
-    throw error;
-  }
-};
-
-// ==================== 对话分析工具 ====================
-export const analyzeConversation = (conversationId: string) => {
-  const stats = conversationManager.getStats(conversationId);
-  if (!stats) {
-    return null;
-  }
-
-  return {
-    ...stats,
-    efficiency: stats.totalTokens / stats.messageCount, // 平均每条消息的token数
-    durationMinutes: Math.round(stats.duration / 60000),
-    recommendation: stats.messageCount > 15 ? '建议开启新对话' : '对话正常',
-  };
-};
-
-// ==================== 导出管理器实例 ====================
-export { conversationManager, promptOptimizer };
-
-// ================== AI 服务配置 =================
+// ==================== AI 服务配置 ====================
 interface AIServiceConfig {
   id: string;
   name: string;
@@ -461,8 +289,10 @@ interface AIServiceConfig {
   consecutiveFailures: number;
   lastCheck: Date | null;
   lastSuccess: Date | null;
+  supportsTools?: boolean; // 是否支持工具调用
 }
 
+// 🆕 多服务配置：主服务 + 千问降级
 const AI_SERVICES: AIServiceConfig[] = [
   {
     id: 'primary',
@@ -473,187 +303,137 @@ const AI_SERVICES: AIServiceConfig[] = [
       baseURL: 'https://api.chatanywhere.tech/v1',
       dangerouslyAllowBrowser: true,
     }),
-    model: 'gpt-5-mini',
-    status: 'checking',
-    responseTime: null,
-    consecutiveFailures: 0,
-    lastCheck: null,
-    lastSuccess: null,
-  },
-  {
-    id: 'backup1',
-    name: 'OpenAI Direct (备用)',
-    priority: 2,
-    client: new OpenAI({
-      //   apiKey: '0f513bc89a482ed8fe9d4b6369eac7d8',
-      //   baseURL: 'https://spark-api-open.xf-yun.com/v2/chat/completions',
-      apiKey: 'sk-MhhXBfjcOEJb5eOOjBb0bn8P0qcLaQFE0sVOZTCb5OradbEd',
-      baseURL: 'https://api.chatanywhere.tech/v1',
-      dangerouslyAllowBrowser: true,
-    }),
     model: 'gpt-4o-mini',
     status: 'checking',
     responseTime: null,
     consecutiveFailures: 0,
     lastCheck: null,
     lastSuccess: null,
+    supportsTools: true,
+  },
+  {
+    id: 'qwen',
+    name: '千问大模型 (降级服务)',
+    priority: 2,
+    client: new OpenAI({
+      apiKey: 'YOUR_QWEN_API_KEY', // 🔑 替换为你的千问 API Key
+      baseURL: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+      dangerouslyAllowBrowser: true,
+    }),
+    model: 'qwen-plus', // 可选: qwen-turbo, qwen-plus, qwen-max
+    status: 'checking',
+    responseTime: null,
+    consecutiveFailures: 0,
+    lastCheck: null,
+    lastSuccess: null,
+    supportsTools: true, // 千问也支持工具调用
   },
 ];
 
 // ==================== 服务管理器 ====================
 class AIServiceManager {
   private services: AIServiceConfig[];
-  private currentService: AIServiceConfig | null = null;
-  private healthCheckInterval: NodeJS.Timeout | null = null;
-  private onServiceChangeCallback?: (service: AIServiceConfig) => void;
+  private currentServiceIndex = 0;
+  private maxConsecutiveFailures = 2; // 连续失败2次后切换
+  private failureResetTime = 5 * 60 * 1000; // 5分钟后重置失败计数
 
   constructor(services: AIServiceConfig[]) {
     this.services = services.sort((a, b) => a.priority - b.priority);
-    this.selectBestService();
   }
 
-  // 启动健康检查
-  startHealthCheck(interval = 60000 * 60 * 2) {
-    this.performHealthCheck();
-    this.healthCheckInterval = setInterval(() => {
-      this.performHealthCheck();
-    }, interval);
-  }
-
-  // 停止健康检查
-  stopHealthCheck() {
-    if (this.healthCheckInterval) {
-      clearInterval(this.healthCheckInterval);
-      this.healthCheckInterval = null;
-    }
-  }
-
-  // 执行健康检查
-  async performHealthCheck() {
-    const checkPromises = this.services.map(async (service) => {
-      try {
-        const startTime = Date.now();
-
-        // 简单的模型列表检查作为健康检查
-        await service.client.models.list();
-
-        const responseTime = Date.now() - startTime;
-        service.status = 'online';
-        service.responseTime = responseTime;
-        service.lastCheck = new Date();
-        service.consecutiveFailures = 0;
-
-        console.log(`✅ ${service.name} 健康检查通过 (${responseTime}ms)`);
-      } catch (error) {
-        service.status = 'offline';
-        service.consecutiveFailures += 1;
-        service.lastCheck = new Date();
-        console.error(`❌ ${service.name} 健康检查失败:`, error);
-      }
-    });
-
-    await Promise.allSettled(checkPromises);
-    this.selectBestService();
-  }
-
-  // 选择最佳服务
-  selectBestService() {
-    const availableServices = this.services.filter(
-      (s) => s.status === 'online',
-    );
-
-    if (availableServices.length === 0) {
-      console.warn('⚠️ 没有可用的 AI 服务');
-      this.currentService = null;
-      return null;
-    }
-
-    // 选择优先级最高且响应最快的服务
-    const bestService = availableServices.reduce((best, current) => {
-      if (current.priority < best.priority) return current;
-      if (
-        current.priority === best.priority &&
-        (current.responseTime || 0) < (best.responseTime || 0)
-      ) {
-        return current;
-      }
-      return best;
-    });
-
-    if (!this.currentService || this.currentService.id !== bestService.id) {
-      console.log(`🔄 切换到服务: ${bestService.name}`);
-      this.currentService = bestService;
-      this.onServiceChangeCallback?.(bestService);
-    }
-
-    return bestService;
-  }
-
-  // 获取当前服务
   getCurrentService(): AIServiceConfig | null {
-    return this.currentService;
+    // 检查是否需要重置失败计数（距离上次失败超过5分钟）
+    this.checkAndResetFailures();
+
+    // 尝试从当前索引开始找可用服务
+    for (let i = 0; i < this.services.length; i++) {
+      const index = (this.currentServiceIndex + i) % this.services.length;
+      const service = this.services[index];
+
+      // 如果服务未达到最大失败次数,返回该服务
+      if (service.consecutiveFailures < this.maxConsecutiveFailures) {
+        this.currentServiceIndex = index;
+        return service;
+      }
+    }
+
+    // 所有服务都失败了,重置失败计数并返回第一个
+    console.warn('⚠️ 所有服务都失败,重置失败计数');
+    this.services.forEach((s) => (s.consecutiveFailures = 0));
+    this.currentServiceIndex = 0;
+    return this.services[0];
   }
 
-  // 标记服务失败
   markServiceFailure(serviceId: string) {
     const service = this.services.find((s) => s.id === serviceId);
     if (service) {
-      service.consecutiveFailures += 1;
+      service.consecutiveFailures++;
+      service.status = 'offline';
+      service.lastCheck = new Date();
 
-      // 连续失败3次标记为离线
-      if (service.consecutiveFailures >= 3) {
-        service.status = 'offline';
-        console.warn(
-          `⚠️ ${service.name} 被标记为离线 (连续失败${service.consecutiveFailures}次)`,
-        );
-        this.selectBestService();
+      console.error(
+        `❌ ${service.name} 失败次数: ${service.consecutiveFailures}/${this.maxConsecutiveFailures}`,
+      );
+
+      // 如果达到失败阈值,自动切换到下一个服务
+      if (service.consecutiveFailures >= this.maxConsecutiveFailures) {
+        this.switchToNextService();
       }
     }
   }
 
-  // 标记服务成功
   markServiceSuccess(serviceId: string) {
     const service = this.services.find((s) => s.id === serviceId);
     if (service) {
       service.consecutiveFailures = 0;
+      service.status = 'online';
       service.lastSuccess = new Date();
-      if (service.status === 'offline') {
-        service.status = 'online';
-        this.selectBestService();
-      }
+      console.log(`✅ ${service.name} 服务正常`);
     }
   }
 
-  // 获取所有服务状态
-  getServicesStatus() {
+  private switchToNextService() {
+    const currentService = this.services[this.currentServiceIndex];
+    this.currentServiceIndex =
+      (this.currentServiceIndex + 1) % this.services.length;
+    const nextService = this.services[this.currentServiceIndex];
+
+    console.log(`🔄 服务切换: ${currentService.name} → ${nextService.name}`);
+  }
+
+  // 检查并重置过期的失败计数
+  private checkAndResetFailures() {
+    const now = Date.now();
+    this.services.forEach((service) => {
+      if (
+        service.lastCheck &&
+        now - service.lastCheck.getTime() > this.failureResetTime &&
+        service.consecutiveFailures > 0
+      ) {
+        console.log(
+          `🔄 重置 ${service.name} 失败计数（距上次失败已超过5分钟）`,
+        );
+        service.consecutiveFailures = 0;
+        service.status = 'checking';
+      }
+    });
+  }
+
+  // 获取服务健康状态
+  getHealthStatus() {
     return this.services.map((s) => ({
-      id: s.id,
       name: s.name,
       status: s.status,
-      priority: s.priority,
-      responseTime: s.responseTime,
-      consecutiveFailures: s.consecutiveFailures,
-      lastCheck: s.lastCheck,
+      failures: s.consecutiveFailures,
       lastSuccess: s.lastSuccess,
     }));
   }
-
-  // 设置服务变更回调
-  onServiceChange(callback: (service: AIServiceConfig) => void) {
-    this.onServiceChangeCallback = callback;
-  }
 }
 
-// 初始化服务管理器
+// 初始化
+const conversationManager = new ConversationManager();
+const promptOptimizer = new PromptOptimizer();
 const aiServiceManager = new AIServiceManager(AI_SERVICES);
-
-// 启动健康检查（每30秒）
-aiServiceManager.startHealthCheck(60000 * 60 * 2);
-
-// 监听服务切换
-aiServiceManager.onServiceChange((service) => {
-  console.log(`📡 当前使用服务: ${service.name}`);
-});
 
 const tools = Array.from(toolsMap.values()).map(({ fun, ...item }) => {
   const jsonSchema = zodToJsonSchema(item.function.parameters);
@@ -671,38 +451,37 @@ const tools = Array.from(toolsMap.values()).map(({ fun, ...item }) => {
   };
 });
 
-// 对话函数
+// ==================== 主要对话函数 ====================
 export const chatWithGPT = async (
   messages: any,
-  onChunk?: (chunk: string) => void, // 回调函数，用于处理每个数据块
-  onComplete?: (fullResponse: string) => void, // 完成时的回调
-  onError?: (error: any) => void, // 错误处理回调
-  onServiceSwitch?: (serviceName: string) => void, // 新增：服务切换回调
+  onChunk?: (chunk: string) => void,
+  onComplete?: (fullResponse: string) => void,
+  onError?: (error: any) => void,
+  onServiceSwitch?: (serviceName: string) => void,
 ) => {
   const externalContent =
-    '智汇云舟（Wisdom Ark）是一个便于用户查询、学习、使用的前端知识库';
+    '智汇云舟(Wisdom Ark)是一个便于用户查询、学习、使用的前端知识库';
   const recentMessages = messages.slice(-5);
+
   const newMessages = [
     {
       role: 'system',
-      content: `
-        ## 角色
-        你是一个专业的前端导师，你最擅长Vue、React、Webpack、Antd这些前端框架，你能够由浅入深的回答用户关于前端的问题
-        ## 参考内容
-        ${externalContent}
-        ## 输出规范
-        - 关于代码问题，你能够按照"设计思路"、"代码实现"两个维度来回答
-        - 别的问题可以简单回答，但不要拒绝回答
+      content: `## 角色
+你是一个专业的前端导师，你最擅长Vue、React、Webpack、Antd这些前端框架，你能够由浅入深的回答用户关于前端的问题
+## 参考内容
+${externalContent}
+## 输出规范
+- 关于代码问题，你能够按照"设计思路"、"代码实现"两个维度来回答
+- 别的问题可以简单回答，但不要拒绝回答
         `,
     },
     ...recentMessages,
   ];
 
-  // 尝试所有可用AI
-  const attemptedServices = new Set<string>();
-  let lastError: any = null;
+  const maxRetries = AI_SERVICES.length; // 最多尝试所有服务
+  let currentRetry = 0;
 
-  while (true) {
+  while (currentRetry < maxRetries) {
     const currentService = aiServiceManager.getCurrentService();
 
     if (!currentService) {
@@ -711,40 +490,42 @@ export const chatWithGPT = async (
       throw error;
     }
 
-    // 避免重复尝试同一服务
-    if (attemptedServices.has(currentService.id)) {
-      break;
-    }
-    attemptedServices.add(currentService.id);
     try {
-      console.log(`🚀 使用 ${currentService.name} 发送请求...`);
+      console.log(
+        `🚀 [尝试 ${currentRetry + 1}/${maxRetries}] 使用 ${currentService.name}...`,
+      );
       onServiceSwitch?.(currentService.name);
 
-      const response = await currentService.client.chat.completions.create({
+      // 🔧 根据服务能力决定是否传入 tools
+      const requestParams: any = {
         model: currentService.model,
         messages: newMessages,
-        stream: true, // 启用流式响应
+        stream: true,
         temperature: 0.7,
-        tools: tools as any,
-      });
+      };
+
+      // 只有支持工具的服务才传入 tools
+      if (currentService.supportsTools) {
+        requestParams.tools = tools;
+      }
+
+      const response =
+        await currentService.client.chat.completions.create(requestParams);
 
       let fullResponse = '';
       const toolCalls: any[] = [];
 
-      // 处理流式数据
       for await (const chunk of response) {
         const delta = chunk.choices[0]?.delta;
 
         if (delta?.content) {
-          // 普通文本内容
           const content = delta.content;
           fullResponse += content;
-          // 实时回调，用于UI更新
           onChunk?.(content);
         }
 
-        if (delta?.tool_calls) {
-          // 处理工具调用（流式模式下工具调用可能分多个chunk）
+        // 只有支持工具的服务才处理工具调用
+        if (currentService.supportsTools && delta?.tool_calls) {
           delta.tool_calls.forEach((toolCall: any, index: number) => {
             if (!toolCalls[index]) {
               toolCalls[index] = {
@@ -765,7 +546,6 @@ export const chatWithGPT = async (
           });
         }
 
-        // 检查是否完成
         if (
           chunk.choices[0]?.finish_reason === 'stop' ||
           chunk.choices[0]?.finish_reason === 'tool_calls'
@@ -774,19 +554,11 @@ export const chatWithGPT = async (
         }
       }
 
-      // 如果有工具调用，处理工具调用
-      if (toolCalls.length > 0) {
+      // 处理工具调用
+      if (toolCalls.length > 0 && currentService.supportsTools) {
         const toolResponses = await Promise.all(
           toolCalls.map(async (toolCall) => {
             const toolId = toolCall.id;
-            if (!toolId) {
-              return {
-                role: 'tool',
-                content: '未找到对应工具',
-                tool_call_id: toolId,
-              };
-            }
-
             const functionName = toolCall.function.name;
             const tool = toolsMap.get(functionName);
 
@@ -794,7 +566,6 @@ export const chatWithGPT = async (
               try {
                 const args = JSON.parse(toolCall.function.arguments);
                 const result = await tool.fun(args);
-
                 return {
                   role: 'tool',
                   content:
@@ -804,73 +575,68 @@ export const chatWithGPT = async (
                   tool_call_id: toolId,
                 };
               } catch (error) {
-                console.error('工具执行失败:', error);
                 return {
                   role: 'tool',
                   content: '工具执行失败',
                   tool_call_id: toolId,
                 };
               }
-            } else {
-              return {
-                role: 'tool',
-                content: '未找到对应工具',
-                tool_call_id: toolId,
-              };
             }
+            return {
+              role: 'tool',
+              content: '未找到对应工具',
+              tool_call_id: toolId,
+            };
           }),
         );
 
         const toolResult = JSON.parse(toolResponses[0].content).content;
+        aiServiceManager.markServiceSuccess(currentService.id);
         onComplete?.(toolResult);
         return toolResult;
       }
 
-      // 标记服务成功
+      // 成功返回
       aiServiceManager.markServiceSuccess(currentService.id);
-
       onComplete?.(fullResponse);
       return fullResponse;
-    } catch (error) {
-      lastError = error;
-      console.error(`❌ ${currentService.name} 请求失败:`, error);
-
-      // 标记服务失败
+    } catch (error: any) {
+      console.error(`❌ ${currentService.name} 请求失败:`, error.message);
       aiServiceManager.markServiceFailure(currentService.id);
+      currentRetry++;
 
-      // 尝试切换到下一个服务
-      const nextService = aiServiceManager.selectBestService();
-
-      if (!nextService || attemptedServices.has(nextService.id)) {
-        // 没有更多可用服务
-        break;
+      // 如果还有重试机会,继续下一个服务
+      if (currentRetry < maxRetries) {
+        console.log(`🔄 准备切换到下一个服务...`);
+        await new Promise((resolve) => setTimeout(resolve, 1000)); // 等待1秒后重试
+        continue;
       }
 
-      console.log(`🔄 自动切换到备用服务: ${nextService.name}`);
-      await new Promise((resolve) => setTimeout(resolve, 1000)); // 等待1秒后重试
+      // 所有服务都失败了
+      const finalError = new Error(
+        `所有 AI 服务都失败了。最后错误: ${error.message}`,
+      );
+      onError?.(finalError);
+      return '抱歉,所有 AI 服务暂时不可用,请稍后重试。我们已经尝试了所有可用的服务。';
     }
   }
-  // 所有服务都失败了
-  const error = lastError || new Error('所有 AI 服务都失败了');
-  onError?.(error);
-  return '发生错误，所有 AI 服务暂时不可用，请稍后重试';
+
+  return '发生未知错误';
 };
 
-// ==================== 导出状态查询函数 ====================
-export const getAIServicesStatus = () => {
-  return aiServiceManager.getServicesStatus();
+export { conversationManager, promptOptimizer, aiServiceManager };
+
+export const analyzeConversation = (conversationId: string) => {
+  const stats = conversationManager.getStats(conversationId);
+  if (!stats) return null;
+  return {
+    ...stats,
+    efficiency: stats.totalTokens / stats.messageCount,
+    durationMinutes: Math.round(stats.duration / 60000),
+  };
 };
 
-export const getCurrentAIService = () => {
-  const service = aiServiceManager.getCurrentService();
-  return service ? service.name : '无可用服务';
-};
-
-export const forceHealthCheck = () => {
-  return aiServiceManager.performHealthCheck();
-};
-
-// 清理函数（在应用卸载时调用）
-export const cleanup = () => {
-  aiServiceManager.stopHealthCheck();
+// 🆕 导出服务健康检查函数
+export const getServicesHealth = () => {
+  return aiServiceManager.getHealthStatus();
 };
