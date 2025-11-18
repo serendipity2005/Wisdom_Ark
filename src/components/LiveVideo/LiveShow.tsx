@@ -1,6 +1,7 @@
 import { useContext, useEffect, useRef } from 'react';
 import './LiveHeader.scss';
 import { Context } from '@/pages/livevideo';
+
 export default function LiveShow() {
   const ctx = useContext(Context);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -18,6 +19,7 @@ export default function LiveShow() {
       }
     }
   }, [ctx]);
+
   return (
     <>
       {/* 播放区域 */}
@@ -27,7 +29,7 @@ export default function LiveShow() {
           muted
           autoPlay
           ref={videoRef}
-        ></video>
+        />
       </div>
     </>
   );

@@ -208,6 +208,7 @@ export default function Toolbar({ handleInsertLink }) {
       // setIsLinkBubbleVisible(true)
       // },
     },
+    { type: 'divider' },
     //   {
     //     icon: <PictureOutlined />,
     //     tooltip: '插入图片',
@@ -217,7 +218,6 @@ export default function Toolbar({ handleInsertLink }) {
   return (
     <div
       style={{
-        background: '#fafafa',
         display: 'flex',
         justifyContent: 'center',
       }}

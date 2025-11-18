@@ -30,72 +30,6 @@ function escapeHtml(text: string): string {
   );
 }
 
-// 常见编程语言配置
-const LANGUAGE_CONFIG: Record<
-  string,
-  { displayName: string; category: string }
-> = {
-  javascript: { displayName: 'JavaScript', category: 'web' },
-  typescript: { displayName: 'TypeScript', category: 'web' },
-  jsx: { displayName: 'JSX', category: 'web' },
-  tsx: { displayName: 'TSX', category: 'web' },
-  python: { displayName: 'Python', category: 'backend' },
-  java: { displayName: 'Java', category: 'backend' },
-  cpp: { displayName: 'C++', category: 'system' },
-  c: { displayName: 'C', category: 'system' },
-  csharp: { displayName: 'C#', category: 'backend' },
-  go: { displayName: 'Go', category: 'backend' },
-  rust: { displayName: 'Rust', category: 'system' },
-  php: { displayName: 'PHP', category: 'backend' },
-  ruby: { displayName: 'Ruby', category: 'backend' },
-  swift: { displayName: 'Swift', category: 'mobile' },
-  kotlin: { displayName: 'Kotlin', category: 'mobile' },
-  html: { displayName: 'HTML', category: 'web' },
-  css: { displayName: 'CSS', category: 'web' },
-  scss: { displayName: 'SCSS', category: 'web' },
-  sql: { displayName: 'SQL', category: 'database' },
-  shell: { displayName: 'Shell', category: 'script' },
-  bash: { displayName: 'Bash', category: 'script' },
-  json: { displayName: 'JSON', category: 'data' },
-  yaml: { displayName: 'YAML', category: 'data' },
-  xml: { displayName: 'XML', category: 'data' },
-  markdown: { displayName: 'Markdown', category: 'markup' },
-  text: { displayName: 'Plain Text', category: 'text' },
-};
-
-// 获取语言信息
-function getLanguageInfo(lang: string): {
-  displayName: string;
-  category: string;
-  language: string;
-} {
-  const normalizedLang = lang.toLowerCase().trim();
-  const config = LANGUAGE_CONFIG[normalizedLang];
-
-  return {
-    language: normalizedLang,
-    displayName: config?.displayName || lang || 'Code',
-    category: config?.category || 'general',
-  };
-}
-
-// 渲染代码块
-function renderCodeBlock(language: string, code: string): string {
-  const langInfo = getLanguageInfo(language);
-  const escapedCode = escapeHtml(code.trim());
-
-  // 根据代码类型添加不同的数据属性和类名
-  return (
-    `<pre class="code-block" data-language="${langInfo.language}" data-category="${langInfo.category}">` +
-    `<div class="code-header">` +
-    `<span class="code-language">${escapeHtml(langInfo.displayName)}</span>` +
-    `<button class="code-copy-btn" onclick="copyCode(this)">复制</button>` +
-    `</div>` +
-    `<code class="language-${langInfo.language}">${escapedCode}</code>` +
-    `</pre>`
-  );
-}
-
 // 解析行内元素
 function parseInlineElements(
   text: string,
@@ -153,9 +87,9 @@ export const parseMarkdown = (markdown: string) => {
 
   let html = markdown;
 
-  // 代码块（需要在其他转换之前处理）- 使用新的渲染函数
+  // 代码块（需要在其他转换之前处理）
   html = html.replace(/```(\w+)?\n?([\s\S]*?)```/g, (match, lang, code) => {
-    return renderCodeBlock(lang || 'text', code);
+    return `<pre><code class="language-${lang || 'text'}">${code.trim()}</code></pre>`;
   });
 
   // 链接
@@ -258,25 +192,4 @@ export const parseMarkdown = (markdown: string) => {
     .replace(/<p><hr><\/p>/g, '<hr>')
     .replace(/<p><\/p>/g, '')
     .replace(/\n{3,}/g, '\n\n');
-};
-
-// 复制代码功能（可在页面中使用）
-(window as any).copyCode = function (button: HTMLButtonElement) {
-  const codeBlock = button.closest('.code-block');
-  if (!codeBlock) return;
-
-  const code = codeBlock.querySelector('code')?.textContent || '';
-
-  navigator.clipboard
-    .writeText(code)
-    .then(() => {
-      const originalText = button.textContent;
-      button.textContent = '已复制！';
-      setTimeout(() => {
-        button.textContent = originalText;
-      }, 2000);
-    })
-    .catch((err) => {
-      console.error('复制失败:', err);
-    });
 };

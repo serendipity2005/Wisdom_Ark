@@ -64,6 +64,9 @@ const ImgNode = Node.create({
       height: {
         default: null,
       },
+      referrerPolicy: {
+        default: 'no-referrer',
+      },
     };
   },
 
@@ -109,8 +112,6 @@ const ImgNode = Node.create({
     return ReactNodeViewRenderer(ImgView);
   },
   addPasteRules() {
-    console.log('粘贴了');
-
     return [
       // 处理 Markdown 格式的图片
       nodePasteRule({
