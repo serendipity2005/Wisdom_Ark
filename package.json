@@ -35,6 +35,8 @@
     "@tiptap/extension-bubble-menu": "^3.6.5",
     "@tiptap/extension-code-block": "^3.6.5",
     "@tiptap/extension-code-block-lowlight": "^3.0.9",
+    "@tiptap/extension-collaboration": "^3.11.0",
+    "@tiptap/extension-collaboration-cursor": "^2.26.2",
     "@tiptap/extension-color": "^3.0.9",
     "@tiptap/extension-heading": "^3.0.9",
     "@tiptap/extension-highlight": "^3.0.9",
@@ -85,6 +87,9 @@
     "turndown": "^7.2.0",
     "vite-plugin-pages": "^0.33.1",
     "ws": "^8.18.3",
+    "y-indexeddb": "^9.0.12",
+    "y-websocket": "^3.0.0",
+    "yjs": "^13.6.27",
     "zod": "^3.25.76",
     "zod-to-json-schema": "^3.24.6"
   },

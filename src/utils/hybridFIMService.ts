@@ -61,16 +61,7 @@ export class HybridFIMService {
     const startTime = Date.now();
 
     try {
-      if (useRealFIM && this.hf) {
-        // result = await this.realFIMFillIn(prefix, suffix, {
-        //   maxTokens,
-        //   temperature,
-        //   topP,
-        //   fimModel: options.fimModel,
-        // });
-        // 直接使用 chatInEditor 作为主要方案
-        // result = await this.promptFIMFillIn(prefix, suffix);
-
+      if (useRealFIM) {
         result = await chatInEditor({ prefix, suffix });
 
         this.performanceStats.realFIMCalls++;
@@ -167,7 +158,8 @@ export class HybridFIMService {
         请直接返回插入的内容，不要包含前后缀。
 `;
 
-    const response = await chatInEditor({ prefix, suffix });
+    // const response = await chatInEditor({ prefix, suffix });
+    const response = await chatRaw([{ role: 'user', content: prompt }]);
     console.log('通义response', response);
 
     return response;

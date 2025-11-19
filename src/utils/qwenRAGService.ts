@@ -1,3 +1,11 @@
+/*
+ * @Author: serendipity 2843306836@qq.com
+ * @Date: 2025-10-28 18:16:52
+ * @LastEditors: serendipity 2843306836@qq.com
+ * @LastEditTime: 2025-11-19 20:48:38
+ * @FilePath: \Wisdom_Ark\src\utils\qwenRAGService.ts
+ * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ */
 // src/utils/qwenRAGService.ts
 // RAG 检索增强
 
@@ -11,30 +19,92 @@ interface Chunk {
     chapter: string;
     level: number;
     position: number;
+    type?: 'text' | 'code';
   };
 }
 
 interface SearchResult {
   content: string;
   score: number;
-  metadata: any;
+  metadata: {
+    chapter: string;
+    level: number;
+    position: number;
+    type?: 'text' | 'code';
+  };
+  source?: 'current' | 'history';
 }
 
-function detectDocTypeForRAG(text: string): 'code' | 'technical' | 'literary' {
-  const sample = (text || '').slice(0, 2000);
-  const codeSignals =
-    /```|function\s|\bclass\b|<\w+>|=>|import\s|const\s|let\s|var\s|#include|public\s|private\s|def\s|;\s*$/m;
-  if (codeSignals.test(sample)) return 'code';
-  const technicalSignals =
-    /\bAPI\b|\bHTTP\b|\bCLI\b|配置|安装|版本|性能|算法|复杂度|代码块|示例|参数|返回值|`[a-zA-Z0-9_]+`/;
-  if (technicalSignals.test(sample)) return 'technical';
-  return 'literary';
+interface DocTypeInfo {
+  primary: 'code' | 'technical' | 'literary';
+  codeRatio: number;
+}
+
+// RAG 配置常量
+const RAG_CONFIG = {
+  // 上下文长度
+  QUERY_PREFIX_LENGTH: 300,
+  QUERY_SUFFIX_LENGTH: 100,
+  INJECTED_PREFIX_LENGTH: 500,
+  INJECTED_SUFFIX_LENGTH: 200,
+
+  // 文档限制
+  MIN_DOC_LENGTH: 500,
+  MAX_CHUNK_SIZE: 800,
+  MIN_CHUNK_SIZE: 100,
+
+  // 检索参数
+  DEFAULT_TOP_K: 3,
+  MIN_SIMILARITY: 0.2,
+  HIGH_QUALITY_THRESHOLD: 0.35,
+  BATCH_SIZE: 10,
+
+  // Token 限制
+  MAX_CONTEXT_TOKENS: 3000,
+  RESERVED_FOR_OUTPUT: 1024,
+
+  // 缓存
+  MAX_CACHE_SIZE: 1000,
+} as const;
+
+/**
+ * 🔹 智能文档类型检测（基于内容比例）
+ */
+function detectDocTypeForRAG(text: string): DocTypeInfo {
+  const sample = (text || '').slice(0, 5000);
+
+  // 1. 统计代码块
+  const codeBlockMatches = sample.match(/```[\s\S]*?```/g) || [];
+  const codeBlockChars = codeBlockMatches.join('').length;
+  const codeRatio = sample.length > 0 ? codeBlockChars / sample.length : 0;
+
+  // 2. 统计技术词汇密度
+  const technicalWords =
+    sample.match(/\bAPI\b|\bHTTP\b|\bCLI\b|配置|安装|版本|性能|算法|复杂度/g) ||
+    [];
+  const technicalDensity = technicalWords.length / (sample.length / 100);
+
+  // 3. 判断主要类型
+  if (codeRatio > 0.3) {
+    return { primary: 'code', codeRatio };
+  }
+
+  if (technicalDensity > 3) {
+    return { primary: 'technical', codeRatio };
+  }
+
+  return { primary: 'literary', codeRatio };
 }
 
 export class QwenRAGService {
   private chunks: Chunk[] = [];
   private apiKey: string;
   private embeddingCache = new Map<string, number[]>();
+  private stats = {
+    ragCalls: 0,
+    normalCalls: 0,
+    degradeReasons: [] as string[],
+  };
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
@@ -149,101 +219,228 @@ export class QwenRAGService {
     options: {
       topK?: number;
       showContext?: boolean;
+      includeHistory?: boolean;
     } = {},
   ): Promise<string> {
-    const { topK = 3, showContext = false } = options;
+    const {
+      topK = RAG_CONFIG.DEFAULT_TOP_K,
+      showContext = false,
+      includeHistory = false,
+    } = options;
+    this.stats.ragCalls++;
 
-    // 1. 提取查询（结合前后文）
-    const query = `${prefix.slice(-200)} ${suffix.slice(0, 100)}`.trim();
+    // 1. 智能提取查询（提取主题而非简单截取）
+    const query = this.extractSmartQuery(prefix, suffix);
 
-    // 2. 检索相关段落
-    const results = await this.search(query, topK, showContext);
+    // 2. 检索当前文档
+    const currentResults = await this.search(query, topK, showContext);
 
-    // 2.1 轻量历史检索（可选，从 localStorage 读取）
-    let finalResults = results;
-    try {
-      const history = await this.searchHistoryLocal(query, topK, 0.2);
-      if (history.length > 0) {
-        finalResults = [...results, ...history]
+    // 3. 检查结果质量并决定是否需要历史检索
+    const highQualityResults = currentResults.filter(
+      (r) => r.score >= RAG_CONFIG.HIGH_QUALITY_THRESHOLD,
+    );
+
+    let finalResults: SearchResult[] = [];
+
+    // 4. 智能混合策略
+    if (highQualityResults.length >= Math.ceil(topK / 2)) {
+      // 当前文档结果足够好，优先使用
+      finalResults = highQualityResults.slice(0, topK);
+    } else if (includeHistory) {
+      // 当前文档结果不足，补充历史文档
+      try {
+        const historyResults = await this.searchHistoryLocal(
+          query,
+          topK - highQualityResults.length,
+          RAG_CONFIG.HIGH_QUALITY_THRESHOLD,
+        );
+
+        // 加权混合：当前文档权重更高
+        const weightedCurrent = highQualityResults.map((r) => ({
+          ...r,
+          score: r.score * 1.2,
+          source: 'current' as const,
+        }));
+        const weightedHistory = historyResults.map((r) => ({
+          ...r,
+          score: r.score * 0.8,
+          source: 'history' as const,
+        }));
+
+        finalResults = [...weightedCurrent, ...weightedHistory]
           .sort((a, b) => b.score - a.score)
           .slice(0, topK);
+      } catch (error) {
+        console.warn('历史检索失败，仅使用当前文档结果', error);
+        finalResults = highQualityResults;
       }
-    } catch (_) {
-      // 忽略历史检索错误，保持最小入侵
+    } else {
+      finalResults = highQualityResults;
     }
 
+    // 5. 降级检查
     if (finalResults.length === 0) {
-      console.warn('⚠️ 未找到相关内容，使用普通补全');
+      const reason = '未找到相关内容';
+      this.stats.degradeReasons.push(reason);
+      console.warn(`⚠️ RAG 降级: ${reason}`);
       return this.normalComplete(prefix, suffix);
     }
 
-    // 3. 构建精简证据摘要，注入到前文以引导补全
+    if (
+      finalResults.every((r) => r.score < RAG_CONFIG.HIGH_QUALITY_THRESHOLD)
+    ) {
+      const reason = `所有结果质量过低 (最高: ${(Math.max(...finalResults.map((r) => r.score)) * 100).toFixed(1)}%)`;
+      this.stats.degradeReasons.push(reason);
+      console.warn(`⚠️ RAG 降级: ${reason}`);
+      return this.normalComplete(prefix, suffix);
+    }
+
+    // 6. 智能构建证据（动态调整长度，避免 Token 溢出）
     const docType = detectDocTypeForRAG(
       `${prefix.slice(-500)} ${suffix.slice(0, 200)}`,
     );
+
+    // 计算可用 Token 数
+    const estimateTokens = (text: string) => Math.ceil(text.length / 2);
+    const maxInputTokens =
+      RAG_CONFIG.MAX_CONTEXT_TOKENS - RAG_CONFIG.RESERVED_FOR_OUTPUT;
+
+    // 构建 Style Guide
+    const styleGuide = this.buildStyleGuide(docType.primary);
+    const styleGuideTokens = estimateTokens(styleGuide);
+
+    // 计算可用于证据和上下文的 Token
+    const availableTokens = maxInputTokens - styleGuideTokens;
+    const evidenceTokenBudget = Math.floor(availableTokens * 0.4);
+    const contextTokenBudget = Math.floor(availableTokens * 0.6);
+
+    // 动态调整证据长度
+    const evidencePerChunk = Math.floor(
+      (evidenceTokenBudget / finalResults.length) * 2,
+    );
     const evidence = finalResults
       .map((r, idx) => {
-        const title = r.metadata.chapter
-          ? `#${idx + 1} ${r.metadata.chapter}`
-          : `#${idx + 1}`;
-        const snippet =
-          r.content.length > 200 ? r.content.slice(0, 200) : r.content;
+        const source = r.source
+          ? ` [${r.source === 'history' ? '历史' : '当前'}]`
+          : '';
+        const title = `#${idx + 1} ${r.metadata.chapter}${source}`;
+        const snippet = r.content.slice(0, Math.max(100, evidencePerChunk));
         return `${title} (${(r.score * 100).toFixed(0)}%)\n${snippet}`;
       })
       .join('\n\n');
-    let styleGuide = '';
-    if (docType === 'code') {
-      styleGuide =
-        '[STYLE]\nType: code\nInstructions: Continue the code precisely; keep language and style; avoid explanations; maintain indentation; use the same programming language.';
-    } else if (docType === 'technical') {
-      styleGuide =
-        '[STYLE]\nType: technical\nInstructions: Be concise and precise; keep markdown structure; keep terminology consistent; prefer bullet points when appropriate; avoid generic filler.';
-    } else {
-      styleGuide =
-        '[STYLE]\nType: literary\nInstructions: Keep tone consistent; ensure smooth transitions; use natural and expressive language as context indicates.';
-    }
 
-    const injectedPrefix = `${styleGuide}\n${evidence}\n\n${prefix.slice(-500)}`;
+    // 动态调整上下文长度
+    const contextChars = contextTokenBudget * 2;
+    const prefixChars = Math.floor(contextChars * 0.7);
+    const suffixChars = Math.floor(contextChars * 0.3);
 
+    const injectedPrefix = `${styleGuide}\n${evidence}\n\n${prefix.slice(-prefixChars)}`;
+    const injectedSuffix = suffix.slice(0, suffixChars);
+
+    // 根据文档类型和代码比例调整温度
     let temperature = 0.7;
-    if (docType === 'technical') {
-      temperature = 0.3;
-    } else if (docType === 'literary') {
-      temperature = 0.8;
-    } else if (docType === 'code') {
+    if (docType.primary === 'code') {
       temperature = 0.2;
+    } else if (docType.primary === 'technical') {
+      temperature = docType.codeRatio > 0.1 ? 0.3 : 0.4;
+    } else {
+      temperature = 0.8;
     }
 
     if (showContext) {
       console.log('🧩 RAG.ragComplete 调试');
       console.log(' - query:', query.slice(0, 300));
+      console.log(
+        ' - 文档类型:',
+        docType.primary,
+        `(代码占比: ${(docType.codeRatio * 100).toFixed(1)}%)`,
+      );
       console.log(' - 命中片段数:', finalResults.length);
       finalResults.forEach((r, i) => {
-        const len = r.content.length;
+        const source = r.source ? ` [${r.source}]` : '';
         console.log(
-          `   ${i + 1}. chapter=${r.metadata.chapter} score=${(r.score * 100).toFixed(1)}% len=${len}`,
+          `   ${i + 1}. ${r.metadata.chapter}${source} - ${(r.score * 100).toFixed(1)}% (${r.content.length}字)`,
         );
       });
-      console.log(' - 证据摘要长度:', evidence.length);
-      console.log('📝 注入证据预览：\n', injectedPrefix.slice(0, 500) + '...');
+      console.log(' - Token 预估:');
+      console.log(`   - Style Guide: ${styleGuideTokens}`);
+      console.log(`   - Evidence: ${estimateTokens(evidence)}`);
+      console.log(
+        `   - Context: ${estimateTokens(injectedPrefix + injectedSuffix)}`,
+      );
+      console.log(' - Temperature:', temperature);
     }
 
-    // 4. 调用通义千问生成
+    // 7. 调用 AI 生成
     try {
       const result = await chatInEditor({
         prefix: injectedPrefix,
-        suffix: suffix.slice(0, 200),
+        suffix: injectedSuffix,
         temperature,
       });
-      console.log('通义千问');
-      console.log(result, '555555');
+
+      if (showContext) {
+        console.log('✅ RAG 生成成功:', result.slice(0, 100) + '...');
+      }
 
       return result;
     } catch (error) {
-      console.error('RAG补全失败', error);
-      // 降级到普通补全
+      const reason = `生成失败: ${error.message}`;
+      this.stats.degradeReasons.push(reason);
+      console.error('❌ RAG 生成失败，降级到普通补全', error);
       return this.normalComplete(prefix, suffix);
     }
+  }
+
+  /**
+   * 🔹 智能提取查询（提取主题而非简单截取）
+   */
+  private extractSmartQuery(prefix: string, suffix: string): string {
+    // 1. 尝试提取最近的标题
+    const recentHeader = this.extractRecentHeader(prefix);
+    if (recentHeader) {
+      return recentHeader;
+    }
+
+    // 2. 提取最后一个段落
+    const paragraphs = prefix.split('\n\n').filter((p) => p.trim());
+    if (paragraphs.length > 0) {
+      const lastParagraph = paragraphs[paragraphs.length - 1];
+      if (lastParagraph.length >= 50 && lastParagraph.length <= 500) {
+        return lastParagraph;
+      }
+    }
+
+    // 3. 降级：使用前后文组合
+    return `${prefix.slice(-RAG_CONFIG.QUERY_PREFIX_LENGTH)} ${suffix.slice(0, RAG_CONFIG.QUERY_SUFFIX_LENGTH)}`.trim();
+  }
+
+  /**
+   * 🔹 提取最近的标题
+   */
+  private extractRecentHeader(prefix: string): string | null {
+    const lines = prefix.split('\n');
+    for (let i = lines.length - 1; i >= Math.max(0, lines.length - 20); i--) {
+      const match = lines[i].match(/^(#{1,6})\s+(.+)$/);
+      if (match) {
+        return match[2];
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 🔹 构建 Style Guide
+   */
+  private buildStyleGuide(docType: 'code' | 'technical' | 'literary'): string {
+    const guides = {
+      code: '[STYLE]\nType: code\nInstructions: Continue the code precisely; keep language and style; avoid explanations; maintain indentation; use the same programming language.',
+      technical:
+        '[STYLE]\nType: technical\nInstructions: Be concise and precise; keep markdown structure; keep terminology consistent; prefer bullet points when appropriate; avoid generic filler.',
+      literary:
+        '[STYLE]\nType: literary\nInstructions: Keep tone consistent; ensure smooth transitions; use natural and expressive language as context indicates.',
+    };
+    return guides[docType];
   }
 
   /**
@@ -280,7 +477,9 @@ export class QwenRAGService {
     // const apiUrl = import.meta.env.DEV
     //   ? '/api/dashscope/api/v1/services/embeddings/text-embedding/text-embedding' // 开发环境走代理
     //   : 'https://dashscope.aliyuncs.com/api/v1/services/embeddings/text-embedding/text-embedding'; // 生产环境需要后端
-    const apiUrl = 'http://localhost:3001/api/embedding';
+    const apiUrl = import.meta.env.DEV
+      ? 'http://localhost:3001/api/embedding'
+      : '/api/embedding';
 
     const response = await fetch(apiUrl, {
       method: 'POST',
@@ -298,8 +497,11 @@ export class QwenRAGService {
     }
 
     const data = await response.json();
-    console.log(data, 'data');
-    // 返回向量数组
+
+    if (!data.output || !data.output.embeddings) {
+      throw new Error('Embedding API 返回格式错误');
+    }
+
     return data.output.embeddings.map((item: any) => item.embedding);
   }
 
@@ -489,9 +691,10 @@ export class QwenRAGService {
     prefix: string,
     suffix: string,
   ): Promise<string> {
+    this.stats.normalCalls++;
     return await chatInEditor({
-      prefix: prefix.slice(-500),
-      suffix: suffix.slice(0, 200),
+      prefix: prefix.slice(-RAG_CONFIG.INJECTED_PREFIX_LENGTH),
+      suffix: suffix.slice(0, RAG_CONFIG.INJECTED_SUFFIX_LENGTH),
     });
   }
 
@@ -501,7 +704,7 @@ export class QwenRAGService {
   getStats() {
     const chapters = [...new Set(this.chunks.map((c) => c.metadata.chapter))];
     const totalTokens = this.chunks.reduce((sum, chunk) => {
-      return sum + Math.ceil(chunk.content.length / 2); // 中文约2字符=1token
+      return sum + Math.ceil(chunk.content.length / 2);
     }, 0);
 
     return {
@@ -516,6 +719,14 @@ export class QwenRAGService {
                 this.chunks.length,
             )
           : 0,
+      ragCalls: this.stats.ragCalls,
+      normalCalls: this.stats.normalCalls,
+      degradeRate:
+        this.stats.ragCalls > 0
+          ? ((this.stats.normalCalls / this.stats.ragCalls) * 100).toFixed(1) +
+            '%'
+          : '0%',
+      recentDegradeReasons: this.stats.degradeReasons.slice(-5),
     };
   }
 
