@@ -20,6 +20,17 @@ interface SearchResult {
   metadata: any;
 }
 
+function detectDocTypeForRAG(text: string): 'code' | 'technical' | 'literary' {
+  const sample = (text || '').slice(0, 2000);
+  const codeSignals =
+    /```|function\s|\bclass\b|<\w+>|=>|import\s|const\s|let\s|var\s|#include|public\s|private\s|def\s|;\s*$/m;
+  if (codeSignals.test(sample)) return 'code';
+  const technicalSignals =
+    /\bAPI\b|\bHTTP\b|\bCLI\b|配置|安装|版本|性能|算法|复杂度|代码块|示例|参数|返回值|`[a-zA-Z0-9_]+`/;
+  if (technicalSignals.test(sample)) return 'technical';
+  return 'literary';
+}
+
 export class QwenRAGService {
   private chunks: Chunk[] = [];
   private apiKey: string;
@@ -148,13 +159,29 @@ export class QwenRAGService {
     // 2. 检索相关段落
     const results = await this.search(query, topK, showContext);
 
-    if (results.length === 0) {
+    // 2.1 轻量历史检索（可选，从 localStorage 读取）
+    let finalResults = results;
+    try {
+      const history = await this.searchHistoryLocal(query, topK, 0.2);
+      if (history.length > 0) {
+        finalResults = [...results, ...history]
+          .sort((a, b) => b.score - a.score)
+          .slice(0, topK);
+      }
+    } catch (_) {
+      // 忽略历史检索错误，保持最小入侵
+    }
+
+    if (finalResults.length === 0) {
       console.warn('⚠️ 未找到相关内容，使用普通补全');
       return this.normalComplete(prefix, suffix);
     }
 
     // 3. 构建精简证据摘要，注入到前文以引导补全
-    const evidence = results
+    const docType = detectDocTypeForRAG(
+      `${prefix.slice(-500)} ${suffix.slice(0, 200)}`,
+    );
+    const evidence = finalResults
       .map((r, idx) => {
         const title = r.metadata.chapter
           ? `#${idx + 1} ${r.metadata.chapter}`
@@ -164,13 +191,34 @@ export class QwenRAGService {
         return `${title} (${(r.score * 100).toFixed(0)}%)\n${snippet}`;
       })
       .join('\n\n');
-    const injectedPrefix = `${evidence}\n\n${prefix.slice(-500)}`;
+    let styleGuide = '';
+    if (docType === 'code') {
+      styleGuide =
+        '[STYLE]\nType: code\nInstructions: Continue the code precisely; keep language and style; avoid explanations; maintain indentation; use the same programming language.';
+    } else if (docType === 'technical') {
+      styleGuide =
+        '[STYLE]\nType: technical\nInstructions: Be concise and precise; keep markdown structure; keep terminology consistent; prefer bullet points when appropriate; avoid generic filler.';
+    } else {
+      styleGuide =
+        '[STYLE]\nType: literary\nInstructions: Keep tone consistent; ensure smooth transitions; use natural and expressive language as context indicates.';
+    }
+
+    const injectedPrefix = `${styleGuide}\n${evidence}\n\n${prefix.slice(-500)}`;
+
+    let temperature = 0.7;
+    if (docType === 'technical') {
+      temperature = 0.3;
+    } else if (docType === 'literary') {
+      temperature = 0.8;
+    } else if (docType === 'code') {
+      temperature = 0.2;
+    }
 
     if (showContext) {
       console.log('🧩 RAG.ragComplete 调试');
       console.log(' - query:', query.slice(0, 300));
-      console.log(' - 命中片段数:', results.length);
-      results.forEach((r, i) => {
+      console.log(' - 命中片段数:', finalResults.length);
+      finalResults.forEach((r, i) => {
         const len = r.content.length;
         console.log(
           `   ${i + 1}. chapter=${r.metadata.chapter} score=${(r.score * 100).toFixed(1)}% len=${len}`,
@@ -185,6 +233,7 @@ export class QwenRAGService {
       const result = await chatInEditor({
         prefix: injectedPrefix,
         suffix: suffix.slice(0, 200),
+        temperature,
       });
       console.log('通义千问');
       console.log(result, '555555');
@@ -269,6 +318,72 @@ export class QwenRAGService {
 
     this.embeddingCache.set(cacheKey, embedding);
     return embedding;
+  }
+
+  /**
+   * 轻量历史检索：从 localStorage('wisdom_ark_history_docs') 读取历史文档，
+   * 与当前 query 进行相似度计算，返回 Top-K 片段。失败则返回空数组。
+   */
+  private async searchHistoryLocal(
+    query: string,
+    topK: number,
+    minSim: number,
+  ): Promise<SearchResult[]> {
+    try {
+      const raw = localStorage.getItem('wisdom_ark_history_docs');
+      if (!raw) return [];
+      const docs = JSON.parse(raw) as {
+        id: string;
+        title?: string;
+        content: string;
+      }[];
+      if (!Array.isArray(docs) || docs.length === 0) return [];
+
+      const queryEmbedding = await this.getEmbedding(query);
+
+      const allChunks: {
+        content: string;
+        metadata: any;
+        embedding?: number[];
+      }[] = [];
+
+      for (const doc of docs) {
+        const parts = this.semanticChunk(doc.content);
+        for (const p of parts) {
+          allChunks.push({
+            content: p.content,
+            metadata: {
+              ...p.metadata,
+              chapter: p.metadata.chapter || doc.title || p.metadata.chapter,
+            },
+          });
+        }
+      }
+
+      const BATCH = 10;
+      for (let i = 0; i < allChunks.length; i += BATCH) {
+        const slice = allChunks.slice(i, i + BATCH);
+        const embs = await this.batchGetEmbeddings(slice.map((s) => s.content));
+        slice.forEach((s, idx) => {
+          s.embedding = embs[idx];
+        });
+      }
+
+      const results: SearchResult[] = allChunks
+        .filter((s) => Array.isArray(s.embedding))
+        .map((s) => ({
+          content: s.content,
+          metadata: s.metadata,
+          score: this.cosineSimilarity(queryEmbedding, s.embedding as number[]),
+        }))
+        .filter((r) => r.score >= minSim)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, topK);
+
+      return results;
+    } catch {
+      return [];
+    }
   }
 
   /**

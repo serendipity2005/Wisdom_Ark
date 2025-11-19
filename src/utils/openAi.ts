@@ -526,8 +526,9 @@ export const chatRaw = async (
 export const chatInEditor = async (content: {
   prefix: string;
   suffix: string;
+  temperature?: number;
 }) => {
-  const { prefix, suffix } = content;
+  const { prefix, suffix, temperature } = content;
   console.log('RAG 检索增强----');
   console.log(prefix, 'prefix');
   console.log(suffix, 'suffix');
@@ -542,6 +543,7 @@ export const chatInEditor = async (content: {
     model: 'qwen-coder-turbo',
     prompt: `<|fim_prefix|>${prefix}<|fim_suffix|>${suffix}<|fim_middle|>`,
     max_tokens: 1024,
+    temperature: typeof temperature === 'number' ? temperature : 0.7,
   });
   console.log(completion, 'completion');
   console.log(completion.choices[0], 'completion.choices[0]');
