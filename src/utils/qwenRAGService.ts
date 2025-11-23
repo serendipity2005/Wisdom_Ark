@@ -2,7 +2,7 @@
  * @Author: serendipity 2843306836@qq.com
  * @Date: 2025-10-28 18:16:52
  * @LastEditors: serendipity 2843306836@qq.com
- * @LastEditTime: 2025-11-19 20:48:38
+ * @LastEditTime: 2025-11-23 09:41:13
  * @FilePath: \Wisdom_Ark\src\utils\qwenRAGService.ts
  * @Description: 这是默认设置,请设置`customMade`, 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
  */
@@ -145,9 +145,9 @@ export class QwenRAGService {
           });
         });
 
-        console.log(
-          `📊 进度：${Math.min(i + BATCH_SIZE, rawChunks.length)}/${rawChunks.length}`,
-        );
+        // console.log(
+        //   `📊 进度：${Math.min(i + BATCH_SIZE, rawChunks.length)}/${rawChunks.length}`,
+        // );
       } catch (error) {
         console.error('Embedding生成失败', error);
         throw error;
@@ -605,6 +605,17 @@ export class QwenRAGService {
 
     for (const line of lines) {
       // 检测Markdown标题
+      //返回的一个数组
+      /**
+       * [
+          '# 这是 1 级标题',  // 完整匹配的字符串（索引 0）
+          '#',                // 捕获组 1：1 个 #（标题级别）
+          '这是 1 级标题',     // 捕获组 2：标题文本
+          index: 0,           // 匹配开始位置（行首）
+          input: '# 这是 1 级标题',  // 原始输入字符串
+          groups: undefined   // 无命名捕获组时为 undefined
+        ]
+       */
       const headerMatch = line.match(/^(#{1,6})\s+(.+)$/);
 
       if (headerMatch) {
@@ -630,7 +641,7 @@ export class QwenRAGService {
             buffer.lastIndexOf('。'),
             buffer.lastIndexOf('\n\n'),
           );
-
+          //如果找到了有效的分隔点
           if (splitPoint > 0) {
             chunks.push({
               content: buffer.slice(0, splitPoint + 1).trim(),
@@ -662,18 +673,18 @@ export class QwenRAGService {
       throw new Error('向量维度不匹配');
     }
 
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
+    let dotProduct = 0; //点积
+    let normA = 0; // 向量A的模
+    let normB = 0; // 向量B的模
 
     for (let i = 0; i < vecA.length; i++) {
       dotProduct += vecA[i] * vecB[i];
       normA += vecA[i] * vecA[i];
       normB += vecB[i] * vecB[i];
-    }
+    } // 点积
 
-    const denominator = Math.sqrt(normA) * Math.sqrt(normB);
-    return denominator === 0 ? 0 : dotProduct / denominator;
+    const denominator = Math.sqrt(normA) * Math.sqrt(normB); // ||A|| x ||B||
+    return denominator === 0 ? 0 : dotProduct / denominator; //cos(θ)
   }
 
   private hashText(text: string): string {

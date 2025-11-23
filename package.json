@@ -54,6 +54,7 @@
     "@tiptap/pm": "^3.6.5",
     "@tiptap/react": "^3.0.9",
     "@tiptap/starter-kit": "^3.0.9",
+    "@tiptap/y-tiptap": "^3.0.1",
     "@types/moment": "^2.13.0",
     "@types/react-infinite-scroll-component": "^5.0.0",
     "ahooks": "^3.9.5",

@@ -12,17 +12,17 @@ export interface FIMOptions {
 }
 
 export class HybridFIMService {
-  private hf: InferenceClient | null = null;
-  private cache = new Map<string, string>();
+  private hf: InferenceClient | null = null; //创建并管理 HuggingFace 推理请求的客户端实例
+  private cache = new Map<string, string>(); //作为缓存，存储 FIM 结果以提升重复请求的响应速度.
   private maxCacheSize = 100;
-  private fimModel: string;
+  private fimModel: string; //作为默认 FIM 模型标识，供真实/提示 FIM 调用时选择使用
   private performanceStats = {
-    realFIMCalls: 0,
-    promptFIMCalls: 0,
-    realFIMSuccess: 0,
-    promptFIMSuccess: 0,
-    averageRealFIMTime: 0,
-    averagePromptFIMTime: 0,
+    realFIMCalls: 0, //记录使用真实 FIM 模型的调用次数
+    promptFIMCalls: 0, //记录使用提示 FIM 模型的调用次数
+    realFIMSuccess: 0, //记录使用真实 FIM 模型的成功次数
+    promptFIMSuccess: 0, //记录使用提示 FIM 模型的成功次数
+    averageRealFIMTime: 0, //记录使用真实 FIM 模型的平均响应时间
+    averagePromptFIMTime: 0, //记录使用提示 FIM 模型的平均响应时间
   }; //性能记录
 
   constructor(hfApiKey?: string) {

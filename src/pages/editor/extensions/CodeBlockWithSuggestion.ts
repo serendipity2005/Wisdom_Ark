@@ -1,3 +1,5 @@
+//带有AI建议的代码块
+
 import CodeBlockLowlight from '@tiptap/extension-code-block-lowlight';
 import { Plugin, PluginKey, TextSelection } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
@@ -116,10 +118,18 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
         key: new PluginKey('code-block-suggestion'),
 
         // 状态管理
+        // 字段 init() 初始化状态 apply
         state: {
           init() {
             return DecorationSet.empty; //初始化为空装饰集
           },
+
+          /*
+           * 在状态更新时被调用
+           * tr: Transaction - 描述文档选择的变化
+           *value:当前插件状态的当前值 也就是旧状态
+           * oldState: DecorationSet - 旧的装饰集
+           */
           apply(tr: Transaction, oldState: DecorationSet) {
             // 如果文档内容发生变化（排除纯选择变化），清除建议
             if (tr.docChanged) {
@@ -138,6 +148,7 @@ const CodeBlockWithSuggestion = CodeBlockLowlight.extend({
 
               const { pos, text } = suggestion; // 获取建议的位置和内容
               // 创建 widget decoration 在光标位置
+              //widget 是
               const widget = Decoration.widget(
                 pos,
                 // 创建虚拟建议元素
