@@ -5,7 +5,7 @@ Mock.setup({
   timeout: 500,
 });
 // 登录接口
-Mock.mock('https://www.demo.com/login', 'post', (options: any) => {
+Mock.mock('http://101.35.16.42:8080/login', 'post', (options: any) => {
   console.log('登录接口被调用了', JSON.parse(options.body));
 
   const { username, password } = JSON.parse(options.body);
@@ -424,7 +424,7 @@ const adminMenuList = [
 ];
 
 //菜单接口
-Mock.mock('https://www.demo.com/menu', 'get', () => {
+Mock.mock('http://101.35.16.42:8080/menu', 'get', () => {
   const token = sessionStorage.getItem('token');
   if (token == 'mocktoken123456admin') {
     return {
@@ -461,7 +461,7 @@ Mock.mock('https://www.demo.com/menu', 'get', () => {
 
 //dashboard里 图表接口
 
-Mock.mock('https://www.demo.com/energyData', 'get', () => {
+Mock.mock('http://101.35.16.42:8080/energyData', 'get', () => {
   return {
     code: 200,
     message: '请求成功',
@@ -482,7 +482,7 @@ Mock.Random.extend({
   },
 });
 //租户列表的接口
-Mock.mock('https://www.demo.com/userList', 'post', (options: any) => {
+Mock.mock('http://101.35.16.42:8080/userList', 'post', (options: any) => {
   const { pageSize, page, companyName, contact, phone } = JSON.parse(
     options.body,
   );
@@ -525,7 +525,7 @@ Mock.mock('https://www.demo.com/userList', 'post', (options: any) => {
   };
 });
 //删除企业
-Mock.mock('https://www.demo.com/deleteUser', 'post', (options: any) => {
+Mock.mock('http://101.35.16.42:8080/deleteUser', 'post', (options: any) => {
   const { id } = JSON.parse(options.body);
   console.log('删除企业', id);
   return {
@@ -536,17 +536,21 @@ Mock.mock('https://www.demo.com/deleteUser', 'post', (options: any) => {
 });
 
 //批量删除企业
-Mock.mock('https://www.demo.com/batchDeleteUser', 'post', (options: any) => {
-  const { ids } = JSON.parse(options.body);
-  console.log('ids', ids);
-  return {
-    code: 200,
-    message: '成功',
-    data: '操作成功',
-  };
-});
+Mock.mock(
+  'http://101.35.16.42:8080/batchDeleteUser',
+  'post',
+  (options: any) => {
+    const { ids } = JSON.parse(options.body);
+    console.log('ids', ids);
+    return {
+      code: 200,
+      message: '成功',
+      data: '操作成功',
+    };
+  },
+);
 //编辑企业
-Mock.mock('https://www.demo.com/editUser', 'post', (options: any) => {
+Mock.mock('http://101.35.16.42:8080/editUser', 'post', (options: any) => {
   console.log('编辑企业收到参数', JSON.parse(options.body));
   return {
     code: 200,
@@ -570,7 +574,7 @@ function generateRooms() {
   }
   return rooms;
 }
-Mock.mock('https://www.demo.com/roomList', 'post', (options: any) => {
+Mock.mock('http://101.35.16.42:8080/roomList', 'post', (options: any) => {
   console.log('收到房间id', JSON.parse(options.body).roomid);
   return {
     code: 200,
@@ -582,7 +586,7 @@ Mock.mock('https://www.demo.com/roomList', 'post', (options: any) => {
 });
 
 //合同管理
-Mock.mock('https://www.demo.com/contractList', 'post', (options: any) => {
+Mock.mock('http://101.35.16.42:8080/contractList', 'post', (options: any) => {
   const { page, pageSize } = JSON.parse(options.body);
   console.log('后端合同管理接到参数', JSON.parse(options.body));
   return {
@@ -612,7 +616,7 @@ Mock.mock('https://www.demo.com/contractList', 'post', (options: any) => {
 });
 
 //账单管理
-Mock.mock('https://www.demo.com/billList', 'post', (options: any) => {
+Mock.mock('http://101.35.16.42:8080/billList', 'post', (options: any) => {
   const { page, pageSize, companyName, contact, phone } = JSON.parse(
     options.body,
   );
@@ -649,7 +653,7 @@ Mock.mock('https://www.demo.com/billList', 'post', (options: any) => {
   };
 });
 //账号管理
-Mock.mock('https://www.demo.com/accountList', 'post', (options: any) => {
+Mock.mock('http://101.35.16.42:8080/accountList', 'post', (options: any) => {
   //  const {page,pageSize,companyName,contact,phone}=JSON.parse(options.body);
   console.log('后端账号管理接到参数', options);
   return {

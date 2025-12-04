@@ -1,3 +1,5 @@
+// 接收1.headerMenu,
+import type React from 'react';
 import './index.scss';
 import {
   Layout,
@@ -8,18 +10,25 @@ import {
   type MenuProps,
   Input,
   Dropdown,
-  Avatar,
   Space,
   Badge,
+  message,
+  Button,
 } from 'antd';
-import { useNavigate } from 'react-router-dom';
+
+import { NavLink, useNavigate } from 'react-router-dom';
+
 import { BellFilled, CaretDownFilled } from '@ant-design/icons';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useScrollVisibility } from '@/hooks/useScrollVisibility';
+
+import UserDropdown from '@/components/UserDropdown';
+import LoginRegisterModal from '@/components/LoginForm';
+import { useAuth } from '@/contexts/authContext';
+import LoginRequiredButton from '@/components/LoginRequiredButton';
 
 type MenuItem = Required<MenuProps>['items'][number];
 interface MyHeaderProps {
-  handleIsVisible?: (visible: boolean) => void;
   headMenu?: MenuItem[];
   children?: React.ReactNode;
 }
@@ -44,6 +53,14 @@ const defaultHeadMenu: MenuItem[] = [
     key: '/live',
     label: '直播',
   },
+  {
+    key: '/ai',
+    label: 'AI',
+  },
+  {
+    key: '/livevideo',
+    label: '直播测试Hbr',
+  },
 ];
 // 创作者中心菜单
 const items = [
@@ -57,54 +74,82 @@ const items = [
   },
 ];
 
+const messageItems: MenuProps['items'] = [
+  {
+    key: '1',
+    label: (
+      <NavLink target="_blank" rel="noopener noreferrer" to="/notification">
+        评论
+      </NavLink>
+    ),
+  },
+  {
+    key: '2',
+    label: (
+      <NavLink target="_blank" rel="noopener noreferrer" to="/notification">
+        赞和收藏
+      </NavLink>
+    ),
+  },
+  {
+    key: '3',
+    label: (
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        href="https://www.luohanacademy.com"
+      >
+        私信
+      </a>
+    ),
+  },
+  {
+    key: '3',
+    label: (
+      <a
+        target="_blank"
+        rel="noopener noreferrer"
+        href="https://www.luohanacademy.com"
+      >
+        系统通知
+      </a>
+    ),
+  },
+];
 export default function MyHeader(props?: MyHeaderProps) {
   const { headMenu } = props || {};
-  console.log(props?.children);
+  // const { token } = useToken();
+  const { requireAuth, isLoggedIn } = useAuth();
+  const menuStyle: React.CSSProperties = {
+    boxShadow: 'none',
+  };
 
   const {
-    token: { colorBgContainer },
+    token: {
+      colorBgContainer,
+      colorBgElevated,
+      borderRadiusLG,
+      boxShadowSecondary,
+    },
   } = theme.useToken();
+  // const contentStyle: React.CSSProperties = {
+  // backgroundColor: token.colorBgElevated,
+  // borderRadius: token.borderRadiusLG,
+  // boxShadow: token.boxShadowSecondary,
+  // };
   const handleMenu: MenuProps['onClick'] = (e) => {
     navigate(e.key);
   };
   const navigate = useNavigate();
+  const visible = useScrollVisibility();
+  const handleLoginModal = () => {
+    console.log('点了');
 
-  const { handleIsVisible } = (props as MyHeaderProps) || {};
-  const [visible, setVisible] = useState<boolean>(true);
-  const lastScrollY = useRef<number>(0);
-  const handleScroll = useCallback(() => {
-    // 记录上次的
-    const currentScrollY = window.scrollY;
+    requireAuth(() => {
+      message.success('点赞成功');
+    });
+  };
 
-    // 如果没滚动多少 则不隐藏
-    if (currentScrollY < 100) {
-      return;
-    }
-    //  如果滚动了太多
-
-    if (currentScrollY - lastScrollY.current > 0) {
-      if (visible) {
-        setVisible(false);
-      }
-    } else {
-      if (!visible) {
-        setVisible(true);
-      }
-    }
-    lastScrollY.current = currentScrollY;
-  }, [visible]);
-  useEffect(() => {
-    if (handleIsVisible) {
-      handleIsVisible(visible);
-    }
-  }, [visible, handleIsVisible]);
-
-  useEffect(() => {
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, [handleScroll]);
   return (
     <Header
       className={`myHeader ${visible ? '' : 'hide'}`}
@@ -151,23 +196,28 @@ export default function MyHeader(props?: MyHeaderProps) {
                   创作者中心
                 </Dropdown.Button>
 
-                {/* 通知 */}
-                <Badge count={1} size="small">
-                  <BellFilled
-                    style={{
-                      fontSize: '20px',
-                      color: `#8a919f`,
-                    }}
-                  />
-                </Badge>
+                {isLoggedIn ? (
+                  <>
+                    <Dropdown menu={{ items: messageItems }}>
+                      <Badge count={1} size="small" onClick={handleLoginModal}>
+                        <BellFilled
+                          style={{
+                            fontSize: '20px',
+                            color: `#8a919f`,
+                          }}
+                        />
+                      </Badge>
+                    </Dropdown>
 
-                {/* 头像 */}
-                <Dropdown>
-                  <Avatar
-                    src="https://avatars.githubusercontent.com/u/1?v=4"
-                    style={{ cursor: 'pointer' }}
-                  />
-                </Dropdown>
+                    <UserDropdown></UserDropdown>
+                  </>
+                ) : (
+                  <>
+                    <LoginRequiredButton color="primary" variant="outlined">
+                      登录/注册
+                    </LoginRequiredButton>
+                  </>
+                )}
               </Space>
             </Col>
           </Row>

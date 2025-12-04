@@ -22,6 +22,8 @@ export default tseslint.config([
       '.next/**/*',
       '.nuxt/**/*',
       'uno.config.ts',
+      '**/*.js', // 忽略所有JS文件
+      '**/*.jsx', // 忽略所有JSX文件
     ],
   },
 
@@ -40,7 +42,7 @@ export default tseslint.config([
   // },
   //基础js/ts配置
   {
-    files: ['**/*.{js,jsx,ts,tsx}'],
+    files: ['**/*.{ts,tsx}'],
     extends: [
       js.configs.recommended,
       ...tseslint.configs.recommended,
@@ -63,7 +65,7 @@ export default tseslint.config([
   },
   // React 专用配置
   {
-    files: ['**/*.{jsx,tsx}'],
+    files: ['**/*.{tsx}'],
     plugins: {
       react,
       'react-hooks': reactHooks,
@@ -110,6 +112,8 @@ export default tseslint.config([
       //     caughtErrorsIgnorePattern: '^_',
       //   },
       // ], //未使用变量使用_下划线
+      '@typescript-eslint/no-unused-expressions': 'off',
+      '@typescript-eslint/prefer-for-of': 'off',
       'no-empty-pattern': 'off', //关闭空对象
       '@typescript-eslint/no-empty-function': 'off',
       '@typescript-eslint/no-unused-vars': 'off',

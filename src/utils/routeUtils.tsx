@@ -1,7 +1,6 @@
 import { lazy } from 'react';
 import type { BackendRoute, FrontendRoute, MenuItem } from '@/types/routes';
 import { Link } from 'react-router-dom';
-
 import {
   UserOutlined,
   HomeOutlined,
@@ -15,7 +14,10 @@ import {
   FileProtectOutlined,
   VideoCameraOutlined,
   FolderOpenOutlined,
+  HistoryOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
+import NoAccess from '@/layouts/adminLayout/NoAccess';
 
 // 创建图标映射对象
 const iconMap = {
@@ -31,7 +33,8 @@ const iconMap = {
   FileProtectOutlined: <FileProtectOutlined />,
   VideoCameraOutlined: <VideoCameraOutlined />,
   FolderOpenOutlined: <FolderOpenOutlined />,
-  // 可以根据需要添加更多图标映射
+  HistoryOutlined: <HistoryOutlined />,
+  SystemOutlined: <SettingOutlined />,
 };
 
 // 动态加载组件
@@ -50,22 +53,39 @@ const lazyLoad = (componentName: string, fullPath?: string) => {
 // 将后端路由转换为React Router需要的结构
 export const transformRoutes = (
   routes: BackendRoute[],
+  permissions: string[] = [],
   fullPath?: string,
 ): FrontendRoute[] => {
   return routes.map((route) => {
     const routePath = `${route.key}`.replace(/\/+/g, '/');
-    const Component = lazyLoad(routePath, fullPath);
 
-    // console.log(route.key);
-    const transformed: FrontendRoute = {
-      path: routePath,
-      element: <Component />,
-    };
+    // 检查是否有权限访问该路由
+    const hasPermission =
+      !route.permissions ||
+      route.permissions.some((p) => permissions.includes(p));
+    let transformed: FrontendRoute;
+    if (hasPermission) {
+      const Component = lazyLoad(routePath, fullPath);
+      transformed = {
+        path: routePath,
+        element: <Component />,
+      };
+    } else {
+      // 无权限时显示无权限访问页面
+      transformed = {
+        path: routePath,
+        element: <NoAccess />,
+      };
+    }
 
     if (route.children) {
       // 更新 fullPath 为当前路由的完整路径
       const newFullPath = routePath;
-      transformed.children = transformRoutes(route.children, newFullPath);
+      transformed.children = transformRoutes(
+        route.children,
+        permissions,
+        newFullPath,
+      );
     }
     return transformed;
   });
@@ -94,7 +114,7 @@ export const generateMenus = (
       const fullPath = parentPath ? `${parentPath}/${route.key}` : route.key;
       return {
         key: route.key,
-        label: parentPath ? (
+        label: !route.children ? (
           <Link to={fullPath}>{route.label}</Link>
         ) : (
           route.label

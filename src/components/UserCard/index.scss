@@ -1,0 +1,19 @@
+.user-card {
+  // background-color: #fff;
+  display: flex;
+  max-height: 50px;
+  align-items: center;
+  .user-details {
+    box-sizing: border-box;
+    padding: 5px 0;
+    margin-left: 10px;
+    &-name {
+      font-size: 18px;
+      margin: 0;
+    }
+    &-description {
+      font-size: 12px;
+      color: $secondary-color;
+    }
+  }
+}

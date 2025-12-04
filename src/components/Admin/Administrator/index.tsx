@@ -1,9 +1,10 @@
 // 管理员管理
 
 import type React from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Table, Button, Space, Tag } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import Filter from '../Filter';
 
 // 模拟数据类型定义
 interface JobPosition {
@@ -14,10 +15,41 @@ interface JobPosition {
   balance: string;
   status: 'active' | 'inactive' | 'pending';
 }
+
 function DBTable() {
   const [selectedRows, setSelectedRows] = useState<number[]>([]);
   const [currentPage, setCurrent] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [stateType, setStateType] = useState('');
+  const [identityTyp, setIdentityType] = useState('');
+  const [searchText, setSearchText] = useState('');
+
+  const threeSelMenu = {
+    label: '状态',
+    items: [
+      { key: 'all', label: '全部状态' },
+      { key: 'online', label: '在线' },
+      { key: 'living', label: '直播中' },
+      { key: 'offline', label: '离线' },
+    ],
+    onChange: setStateType,
+  };
+
+  const identityMenu = {
+    label: '身份',
+    items: [
+      { key: 'all', label: '全部身份' },
+      { key: 'admin', label: '管理员' },
+      { key: 'superAdm', label: '高级管理员' },
+    ],
+    onChange: setIdentityType,
+  };
+
+  const menuItems = [threeSelMenu, identityMenu];
+
+  useEffect(() => {
+    console.log('stateType', stateType, identityTyp, searchText);
+  }, [stateType, identityTyp, searchText]);
 
   // 模拟职位数据
   const [jobData, setJobData] = useState<JobPosition[]>([
@@ -145,26 +177,36 @@ function DBTable() {
   };
 
   return (
-    <Table
-      rowSelection={rowSelection}
-      columns={columns}
-      dataSource={jobData}
-      rowKey="id"
-      pagination={{
-        current: currentPage,
-        pageSize: pageSize,
-        total: jobData.length,
-        showSizeChanger: true,
-        showQuickJumper: true,
-        showTotal: (total: any, range: any[]) =>
-          `显示 ${range[0]} 个结果 (共 ${total} 个结果)`,
-        onChange: (page: React.SetStateAction<number>, size: any) => {
-          setCurrent(page);
-          setPageSize(size || 10);
-        },
-      }}
-      size="middle"
-    />
+    <>
+      {/* 筛选和搜索区域 */}
+      <Filter
+        menuItems={menuItems}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        setSearchText={setSearchText}
+      />
+      <Table
+        rowSelection={rowSelection}
+        columns={columns}
+        dataSource={jobData}
+        className="mt-20"
+        rowKey="id"
+        pagination={{
+          current: currentPage,
+          pageSize: pageSize,
+          total: jobData.length,
+          showSizeChanger: true,
+          showQuickJumper: true,
+          showTotal: (total: any, range: any[]) =>
+            `显示 ${range[0]} 个结果 (共 ${total} 个结果)`,
+          onChange: (page: React.SetStateAction<number>, size: any) => {
+            setCurrent(page);
+            setPageSize(size || 10);
+          },
+        }}
+        size="middle"
+      />
+    </>
   );
 }
 

@@ -1,0 +1,10 @@
+.article-container {
+  // position: relative;
+  // margin-right: 23.33rem;
+
+  &-header {
+    span {
+      color: $primary-text-color;
+    }
+  }
+}

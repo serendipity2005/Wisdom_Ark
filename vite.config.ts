@@ -20,15 +20,20 @@ export default defineConfig({
           baseRoute: '/',
         },
       ],
-      extendRoute(route) {
-        if (route.path === 'home') {
-          return {
-            ...route,
-            redirect: '/',
-          };
-        }
-        return route;
-      },
+      // extendRoute(route) {
+      //   console.log(route.path);
+
+      //   if (route.path === '/') {
+      //     return {
+      //       ...route,
+      //       element: `() => {
+      //         const { Navigate } = require('react-router-dom')
+      //         return React.createElement(Navigate, { to: '/post/1', replace: true })
+      //       }`,
+      //     };
+      //   }
+      //   return route;
+      // },
       extensions: ['tsx', 'jsx'],
       // 排除后台相关文件
       exclude: ['**/admin/**', '**/components/**'],

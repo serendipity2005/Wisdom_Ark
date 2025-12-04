@@ -2,65 +2,101 @@
 
 import { Button, Input, Select, Dropdown, Row, Col } from 'antd';
 import { SearchOutlined, MoreOutlined } from '@ant-design/icons';
-import { useState } from 'react';
-
-import './index.scss';
-
 const { Option } = Select; // 解构出 Option 组件
-function Filter() {
-  const [searchText, setSearchText] = useState('');
-  const [locationFilter, setLocationFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
-  const [timeFilter, setTimeFilter] = useState('');
-  const [pageSize, setPageSize] = useState(10);
 
+interface NumItem {
+  key: number;
+  label: string;
+}
+
+interface StringItem {
+  key: string;
+  label: string;
+}
+
+interface MenuItem {
+  label: string;
+  items: StringItem[];
+  onChange: (value: string) => void;
+}
+
+const OriginalPage = [
+  { key: 10, label: 'page 10' },
+  { key: 25, label: 'page 25' },
+  { key: 50, label: 'page 50' },
+];
+
+interface FilterProps {
+  pageMenu?: NumItem[];
+  menuItems: MenuItem[];
+  pageSize: number;
+  setPageSize: (size: number) => void;
+  setSearchText: (text: string) => void;
+}
+const Filter: React.FC<FilterProps> = ({
+  pageMenu = OriginalPage,
+  menuItems,
+  pageSize,
+  setPageSize,
+  setSearchText,
+}) => {
   // 更多操作菜单 - 使用新的 menu 配置格式
   const moreMenu = {
     items: [
       { key: 'export', label: '导出数据' },
       { key: 'import', label: '导入数据' },
-      { key: 'settings', label: '列设置' },
     ],
   };
 
   return (
-    <Row className="content-filter" gutter={16}>
+    <Row className="content-filter mb-0 flex justify-between" gutter={16}>
       <Col span={4}>
         <Select
-          className="content-select"
-          placeholder="page 10"
+          className="content-select w-full"
+          placeholder={pageMenu[0].label}
           value={pageSize}
           onChange={setPageSize}
         >
-          <Option value={10}>page 10</Option>
-          <Option value={25}>page 25</Option>
-          <Option value={50}>page 50</Option>
+          {pageMenu.map((item) => {
+            return (
+              <Option key={item.key} value={item.key}>
+                {item.label}
+              </Option>
+            );
+          })}
         </Select>
       </Col>
       <Col span={5}>
         <Input
           placeholder="寻找..."
           prefix={<SearchOutlined />}
-          value={searchText}
+          //   value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
         />
       </Col>
-      <Col span={4}>
-        <Select
-          placeholder="地点"
-          className="content-select"
-          onChange={setLocationFilter}
-        >
-          <Option value="">全部地点</Option>
-          <Option value="加州">加州</Option>
-          <Option value="凤凰">凤凰</Option>
-          <Option value="跨境部定期州">跨境部定期州</Option>
-        </Select>
-      </Col>
-      <Col span={4}>
+      {menuItems.map((item, index) => {
+        return (
+          <Col span={4} key={index}>
+            <Select
+              placeholder={item.label}
+              className="content-select w-full"
+              onChange={item.onChange}
+            >
+              {item.items.map((item) => {
+                return (
+                  <Option key={item.key} value={item.label}>
+                    {item.label}
+                  </Option>
+                );
+              })}
+            </Select>
+          </Col>
+        );
+      })}
+      {/* <Col span={4}>
         <Select
           placeholder="选择类型"
-          className="content-select"
+          className="content-select  w-full"
           onChange={setStatusFilter}
         >
           <Option value="">全部类型</Option>
@@ -72,7 +108,7 @@ function Filter() {
       <Col span={4}>
         <Select
           placeholder="选择时间"
-          className="content-select"
+          className="content-select w-full"
           onChange={setTimeFilter}
         >
           <Option value="">全部时间</Option>
@@ -80,7 +116,7 @@ function Filter() {
           <Option value="week">本周</Option>
           <Option value="month">本月</Option>
         </Select>
-      </Col>
+      </Col> */}
       <Col span={3}>
         <Dropdown menu={moreMenu} placement="bottomRight">
           <Button icon={<MoreOutlined />}>更多</Button>
@@ -88,6 +124,6 @@ function Filter() {
       </Col>
     </Row>
   );
-}
+};
 
 export default Filter;

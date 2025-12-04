@@ -1,0 +1,9 @@
+.login-modal {
+  width: max-content;
+  .login-body {
+    min-width: 300px;
+    .userName {
+      margin-bottom: 15px;
+    }
+  }
+}
