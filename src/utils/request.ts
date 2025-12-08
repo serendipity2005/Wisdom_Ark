@@ -278,15 +278,19 @@ req.interceptors.request.use((config: InternalAxiosRequestConfig) => {
 // 响应拦截器
 req.interceptors.response.use(
   (response: AxiosResponse) => {
-    console.log(response.data);
-
+    const url = response.config?.url || '';
     const res = response.data;
-    const code = res.code || 200;
-    if (code != 200) {
+    const code = res.code ?? 200;
+
+    if (url.startsWith('/minio/')) {
+      return res;
+    }
+
+    if (code !== 200) {
       message.error(res.message || '请求失败');
       return Promise.reject(new Error(res.message || '请求失败'));
     }
-    return response.data;
+    return res;
   },
   (error) => {
     // 网络错误处理
